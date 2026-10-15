@@ -103,6 +103,12 @@
       "skillPath": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
       "computedHash": "1d35d0afa3ded88c9324d38db08b2cff91cd03e0e11d64786bee41385cd7b9fb"
     },
+    "ste": {
+      "source": "mifunedev/openharness",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/ste/SKILL.md",
+      "computedHash": "5b7f40d905600d6866ad6306ef7f368296103553effce9dac99536c714603621"
+    },
     "tdd": {
       "source": "mattpocock/skills",
       "sourceType": "github",
