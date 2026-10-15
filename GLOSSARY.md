@@ -15,8 +15,12 @@ _Avoid_: Store, restaurant, branch, site
 ## People
 
 **Employee**:
-A person employed by an Organization, with a limited Opsell account of their own, who works shifts at one or more Locations.
+A person employed by an Organization who works shifts at one or more Locations, whatever their Role, with a limited Opsell account of their own; corporate users with an Organization-wide Role are never Employees.
 _Avoid_: Crew member, staff, worker
+
+**Team Member**:
+The Role of an Employee with no supervisory duties, who sees only their own records.
+_Avoid_: Employee (as a Role name), crew, hourly
 
 **Org Admin**:
 The role that owns an Organization's setup: its Locations, users, Role assignments, settings, and billing.
