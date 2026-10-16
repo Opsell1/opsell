@@ -36,8 +36,12 @@ _Avoid_: Permission group, user type
 
 ## Operations
 
+**Business Day**:
+A Location's operating day, ending at that Location's local cutoff rather than at midnight, so a late close still belongs to the day it started.
+_Avoid_: Calendar day, shift day, date
+
 **Closing Report**:
-The single end-of-day record a Location submits, combining closing notes with sales and labor figures.
+The single record a Location submits for each Business Day, combining closing notes with sales and labor figures.
 _Avoid_: Closing notes, nightly report, sales report
 
 **HR Flag**:
