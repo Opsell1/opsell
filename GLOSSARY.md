@@ -51,8 +51,16 @@ _Avoid_: HR ticket, HR issue, incident
 ## Employee records
 
 **Write-up**:
-A formal disciplinary record issued to an Employee and attached to their history.
+A formal disciplinary record issued to exactly one Employee, delivered in a meeting, and attached to their history.
 _Avoid_: Disciplinary form, warning, incident report
+
+**Write-up Level**:
+The step a Write-up sits at on Opsell's fixed disciplinary ladder: documented verbal warning, written warning, final written warning, or suspension.
+_Avoid_: Severity, warning type
+
+**Rebuttal**:
+An Employee's own written response to a Write-up, which travels with it and never changes it.
+_Avoid_: Comment, appeal, dispute
 
 ## Tips
 
