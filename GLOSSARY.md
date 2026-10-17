@@ -53,7 +53,7 @@ The single record a Location submits for each Business Day, combining closing no
 _Avoid_: Closing notes, nightly report, sales report
 
 **HR Flag**:
-A per-Employee item, suggested from a Closing Report's notes and confirmed by its author, that routes an HR-relevant event to HR.
+A record about exactly one Employee that routes an HR-relevant event to HR, either confirmed by a Closing Report's author from its notes or raised directly by a GM or Manager, and open until HR resolves it.
 _Avoid_: HR ticket, HR issue, incident
 
 ## Employee records
