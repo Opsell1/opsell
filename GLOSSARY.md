@@ -18,6 +18,10 @@ _Avoid_: Store, restaurant, branch, site
 A person employed by an Organization who works shifts at one or more Locations, whatever their Role, with a limited Opsell account of their own; corporate users with an Organization-wide Role are never Employees.
 _Avoid_: Crew member, staff, worker
 
+**Employment Period**:
+One continuous stretch of an Employee's employment, from hire to separation; a rehire opens a new Employment Period on the same Employee rather than a new Employee.
+_Avoid_: Stint, tenure, rehire record
+
 **Team Member**:
 The Role of an Employee with no supervisory duties, who sees only their own records.
 _Avoid_: Employee (as a Role name), crew, hourly
@@ -33,6 +37,10 @@ _Avoid_: Admin, super admin, vendor
 **Role**:
 One of the fixed, Opsell-defined sets of permissions assigned to a user within an Organization, adjustable only through per-Organization toggles.
 _Avoid_: Permission group, user type
+
+**Position**:
+The job an Employee works on a given shift, such as server, cook or host, classed as front or back of house; it describes the work, never the Employee's permissions.
+_Avoid_: Role (for the job worked), duty, job title
 
 ## Operations
 
