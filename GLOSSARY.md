@@ -12,6 +12,10 @@ _Avoid_: Tenant, company, restaurant, account
 A single physical store operated by an Organization.
 _Avoid_: Store, restaurant, branch, site
 
+**Demo Organization**:
+An Organization populated entirely with fictional people and operations for showing Opsell to prospects, which can never hold real people or connect to a real data source.
+_Avoid_: Sandbox, test tenant, trial account
+
 ## People
 
 **Employee**:
