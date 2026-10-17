@@ -1,0 +1,484 @@
+<!doctype html>
+<!--
+  PROTOTYPE - throwaway. Wayfinder ticket "Corporate dashboards" (Opsell1/opsell#29).
+  Question: what do Org Admin, Ops and HR see across Locations, and how do they drill
+  Organization > Location > Business Day?
+  Three structurally different variants, switchable via ?variant=A|B|C and the floating bar
+  (or the left/right arrow keys). Role via ?role=admin|ops|hr. All data is mock, generated in-page
+  from a fixed seed (5-Location bakery-cafe scenario from "Mock data source"). Nothing persists.
+  Run: open this file in a browser.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE - Corporate dashboards</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #fff; --ink: #1d1d1b; --muted: #6b6a66; --line: #e4e2dc;
+    --accent: #2f5d50; --good: #2e7d4f; --good-bg: #e3f2e8; --warn: #a86400; --warn-bg: #fdf0d8;
+    --bad: #b3261e; --bad-bg: #fbe4e2; --info-bg: #e8eef6; --info: #2c5282; --none-bg: #efeeea;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  button { font: inherit; cursor: pointer; }
+  a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* App chrome (shared, stands in for the real app shell) */
+  .topbar { display: flex; align-items: center; gap: 16px; padding: 10px 24px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+  .brand { font-weight: 700; letter-spacing: -0.01em; }
+  .brand small { font-weight: 400; color: var(--muted); margin-left: 6px; }
+  .demo-tag { font-size: 11px; background: var(--warn-bg); color: var(--warn); padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+  .spacer { flex: 1; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; padding: 5px 12px; color: var(--muted); }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--ink); color: #fff; }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 20px 24px 96px; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 15px; margin: 0 0 10px; }
+  h3 { font-size: 13px; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .muted { color: var(--muted); }
+  .crumbs { display: flex; gap: 6px; align-items: center; color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+  .crumbs b { color: var(--ink); font-weight: 600; }
+
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .p-good { background: var(--good-bg); color: var(--good); }
+  .p-warn { background: var(--warn-bg); color: var(--warn); }
+  .p-bad { background: var(--bad-bg); color: var(--bad); }
+  .p-info { background: var(--info-bg); color: var(--info); }
+  .p-none { background: var(--none-bg); color: var(--muted); }
+  .up { color: var(--good); } .down { color: var(--bad); }
+
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  td.r, th.r { text-align: right; }
+  tr.click { cursor: pointer; }
+  tr.click:hover td { background: #faf9f6; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpis.four { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 0; }
+  .scroll-x { overflow-x: auto; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .kpi .label { font-size: 12px; color: var(--muted); }
+  .kpi .val { font-size: 22px; font-weight: 650; margin-top: 2px; }
+  .kpi .delta { font-size: 12px; }
+
+  .hidden-note { font-size: 12px; color: var(--muted); font-style: italic; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .stack > * + * { margin-top: 16px; }
+  .note { border-left: 3px solid var(--line); padding: 4px 0 4px 10px; margin: 6px 0; }
+  .note .sec { font-size: 12px; color: var(--muted); }
+  .bar { height: 8px; background: var(--none-bg); border-radius: 4px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: var(--accent); }
+
+  /* Variant B: split inbox */
+  .split { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .inbox-group { margin-bottom: 14px; }
+  .inbox-group h3 { display: flex; justify-content: space-between; }
+  .item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); margin-bottom: 6px; cursor: pointer; }
+  .item:hover { border-color: #c9c6bd; }
+  .item.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .item .t { font-weight: 600; }
+  .item .s { font-size: 12px; color: var(--muted); }
+  .sticky { position: sticky; top: 64px; }
+  .orgline { display: flex; flex-wrap: wrap; gap: 20px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 16px; }
+  .orgline span b { font-size: 15px; }
+
+  /* Variant C: grid */
+  .hm { border-collapse: separate; border-spacing: 3px; width: auto; }
+  .hm td, .hm th { border: 0; padding: 0; }
+  .hm th.loc { text-align: left; padding-right: 12px; font-size: 13px; color: var(--ink); white-space: nowrap; }
+  .hm th.day { font-size: 10px; color: var(--muted); font-weight: 500; text-align: center; width: 30px; }
+  .hm th.day.wk { color: var(--ink); font-weight: 700; }
+  .cell { width: 30px; height: 34px; border-radius: 4px; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 600; }
+  .cell:hover { outline: 2px solid var(--ink); }
+  .cell.sel { outline: 2px solid var(--accent); }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+  .drawer-bg { position: fixed; inset: 0; background: rgba(20, 20, 18, 0.25); z-index: 20; }
+  .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(1000px, 94vw); background: var(--bg); z-index: 21; overflow: auto; padding: 20px 24px 96px; box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12); }
+  .drawer .close { float: right; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 4px 10px; }
+
+  /* Prototype switcher: deliberately not part of the design */
+  .proto-bar { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 4px; background: #111; color: #fff; border-radius: 99px; padding: 6px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); font-size: 13px; }
+  .proto-bar button { background: #2a2a2a; color: #fff; border: 0; border-radius: 99px; width: 32px; height: 32px; font-size: 16px; }
+  .proto-bar button:hover { background: #444; }
+  .proto-bar .lbl { padding: 0 14px; min-width: 250px; text-align: center; }
+  .proto-bar .lbl b { color: #ffd166; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="proto-bar" id="protoBar">
+  <button id="prev" title="Previous variant (←)">‹</button>
+  <div class="lbl" id="protoLbl"></div>
+  <button id="next" title="Next variant (→)">›</button>
+</div>
+<script>
+// ---------- Mock data (deterministic) ----------
+function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hash(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+const ORG = 'Larkspur Bakehouse';
+const LOCS = [
+  { id: 'sf', name: 'Valencia St', city: 'San Francisco', st: 'CA', base: 6200 },
+  { id: 'pas', name: 'Lake Ave', city: 'Pasadena', st: 'CA', base: 5400 },
+  { id: 'bk', name: 'Court St', city: 'Brooklyn', st: 'NY', base: 7100 },
+  { id: 'cam', name: 'Mass Ave', city: 'Cambridge', st: 'MA', base: 4800 },
+  { id: 'atx', name: 'South Lamar', city: 'Austin', st: 'TX', base: 4300 },
+];
+const LABOR_TARGET = 27;
+const FIRST = ['Maya', 'Luis', 'Jordan', 'Priya', 'Ava', 'Diego', 'Sam', 'Noah', 'Lena', 'Omar', 'Grace', 'Theo', 'Rosa', 'Kai', 'Imani', 'Eli', 'Nina', 'Marco', 'June', 'Tariq', 'Bea', 'Ravi', 'Chloe', 'Andre'];
+const LAST = ['Chen', 'Ortiz', 'Park', 'Nguyen', 'Brooks', 'Reyes', 'Kim', 'Patel', 'Silva', 'Haddad', 'Lowe', 'Moreno', 'Okafor', 'Ito', 'Fischer', 'Dunn'];
+const POSITIONS = ['Barista', 'Cashier', 'Baker', 'Prep cook', 'Shift lead'];
+const FLAG_CATS = ['Attendance', 'No-call no-show', 'Conduct', 'Policy violation', 'Cash handling', 'Food safety', 'Workplace injury', 'Harassment or discrimination complaint', 'Other'];
+const WU_LEVELS = ['Verbal', 'Written', 'Final', 'Suspension'];
+const NOTES = {
+  'Operations': ['Ran out of croissants by 9:40, bake schedule needs one more tray.', 'Espresso machine #2 pulling slow, called service.', 'Catering order for 40 went out on time.', 'Smooth day, line peaked around 8:15.'],
+  'Staffing': ['{n} came in 25 min late, second time this week.', '{n} covered the afternoon for Pasadena.', '{n} left early, feeling unwell.', 'Short one barista from 7-9.'],
+  'Guests': ['Guest complaint about cold sandwich, comped.', 'Regular asked about oat milk again.', 'Big school group at 3pm.'],
+  'Facilities': ['Walk-in cooler at 41F at close, logged and adjusted.', 'Back door lock sticking.', 'Restroom hand dryer out.'],
+  'Cash & safe': ['Drawer 2 short $14, recounted twice.', 'Safe drop done, all balanced.', 'Tip jar counted $142.'],
+};
+
+const today = new Date(); today.setHours(0, 0, 0, 0);
+const DAYS = 91;
+const dates = [];
+for (let i = DAYS; i >= 1; i--) { const d = new Date(today); d.setDate(d.getDate() - i); dates.push(d); }
+const iso = d => d.toISOString().slice(0, 10);
+const fmtDay = d => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+const fmtShort = d => d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+const DOW = [1.12, 0.84, 0.9, 0.95, 1.0, 1.1, 1.26]; // Sun..Sat
+const Y = DAYS - 1; // index of yesterday
+
+const people = {};
+for (const L of LOCS) {
+  const r = rng(hash(L.id + 'ppl'));
+  people[L.id] = Array.from({ length: 22 }, (_, k) => ({ name: FIRST[(k * 7 + hash(L.id)) % FIRST.length] + ' ' + LAST[Math.floor(r() * LAST.length)], pos: POSITIONS[k % POSITIONS.length], wage: 17 + Math.round(r() * 9) }));
+}
+
+const data = {}; // data[locId][i] = Business Day record
+for (const L of LOCS) {
+  data[L.id] = dates.map((d, i) => {
+    const r = rng(hash(L.id + iso(d)));
+    const sales = Math.round(L.base * DOW[d.getDay()] * (1 + 0.04 * i / DAYS) * (0.92 + 0.16 * r()));
+    const bf = 0.42 + 0.06 * r(), lu = 0.36 + 0.05 * r();
+    const dayparts = { Breakfast: Math.round(sales * bf), Lunch: Math.round(sales * lu), Afternoon: 0 };
+    dayparts.Afternoon = sales - dayparts.Breakfast - dayparts.Lunch;
+    const cat = r() < 0.18 ? 0.04 + 0.08 * r() : 0;
+    const categories = { Coffee: Math.round(sales * 0.34), Bakery: Math.round(sales * (0.38 - cat)), Savory: 0, Catering: Math.round(sales * cat) };
+    categories.Savory = sales - categories.Coffee - categories.Bakery - categories.Catering;
+    let laborPct = 24 + 4.5 * r();
+    if (L.id === 'cam' && i >= Y - 9) laborPct += 6 + 2 * r(); // scripted: MA labor spike
+    if (L.id === 'atx' && i >= Y - 20 && i < Y - 13) laborPct += 3;
+    const laborCost = Math.round(sales * laborPct / 100);
+    const hours = Math.round(laborCost / 21);
+    const ot = (L.id === 'cam' && i >= Y - 9) ? Math.round(6 + 6 * r()) : Math.round(r() * 3);
+    const top5 = [...people[L.id]].sort(() => r() - 0.5).slice(0, 5).map(p => { const h = 7 + Math.round(r() * 30) / 10; return { ...p, hours: h, cost: Math.round(h * p.wage) }; }).sort((a, b) => b.cost - a.cost);
+    let report = r() < 0.07 ? 'late' : 'submitted';
+    let closedReason = null;
+    if (i === Y) report = 'draft';
+    if (L.id === 'bk' && (i === Y - 2 || i === Y - 4)) report = 'overdue';
+    if (L.id === 'bk' && i === Y - 1) report = 'late';
+    if (L.id === 'sf' && i === Y - 19) { report = 'closed'; closedReason = 'Power outage on the block'; }
+    if (L.id === 'pas' && i === Y - 50) { report = 'closed'; closedReason = 'Thanksgiving'; }
+    const card = report === 'closed' ? 0 : Math.round(sales * (0.052 + 0.01 * r()));
+    const jar = report === 'closed' ? 0 : Math.round(70 + 110 * r());
+    let tips = 'finalized';
+    if (i === Y || report === 'overdue') tips = 'draft';
+    if (L.id === 'atx' && i === Y - 4) tips = 'reopened';
+    if (L.id === 'pas' && i === Y - 1) tips = 'draft';
+    if (report === 'closed') tips = 'none';
+    const flags = [];
+    const nFlags = report === 'closed' || report === 'overdue' || i === Y ? 0 : (r() < 0.14 ? 1 : 0) + (r() < 0.03 ? 1 : 0);
+    for (let k = 0; k < nFlags; k++) {
+      const c = FLAG_CATS[Math.floor(r() * 6)];
+      flags.push({ cat: c, who: people[L.id][Math.floor(r() * 22)].name, open: Y - i < 10 ? r() < 0.7 : r() < 0.06 });
+    }
+    if (L.id === 'pas' && i === Y - 3) flags.push({ cat: 'Workplace injury', who: people.pas[4].name, open: true, urgent: true, quote: 'Burned forearm on the deck oven, ran under cold water, did not want to go home.' });
+    if (L.id === 'cam' && i === Y - 6) flags.push({ cat: 'Harassment or discrimination complaint', who: people.cam[9].name, open: true });
+    const writeups = [];
+    if (report !== 'closed' && i !== Y && r() < 0.035) writeups.push({ who: people[L.id][Math.floor(r() * 22)].name, level: WU_LEVELS[Math.floor(r() * r() * 4)], state: Y - i < 5 ? 'Ready to deliver' : (r() < 0.85 ? 'Signed' : 'Refused') });
+    if (L.id === 'bk' && i === Y - 1) writeups.push({ who: people.bk[2].name, level: 'Final', state: 'Awaiting HR approval' });
+    const notes = Object.entries(NOTES).map(([sec, arr]) => ({ sec, text: arr[Math.floor(r() * arr.length)].replace('{n}', people[L.id][Math.floor(r() * 22)].name.split(' ')[0]) }));
+    const unapproved = i === Y ? 2 + Math.floor(r() * 3) : 0;
+    return { d, i, sales, guests: Math.round(sales / 11.4), dayparts, categories, laborPct, laborCost, hours, ot, top5, report, closedReason, card, jar, tips, flags, writeups, notes, unapproved };
+  });
+}
+
+// ---------- Aggregation ----------
+const RANGES = { y: { label: 'Yesterday', n: 1 }, '7': { label: 'Last 7 days', n: 7 }, '28': { label: 'Last 28 days', n: 28 }, '91': { label: '13 weeks', n: 91 } };
+function slice(locId, n, offset = 0) { const arr = data[locId]; return arr.slice(Math.max(0, arr.length - n - offset), arr.length - offset); }
+function prior(locId, n) { return n === 1 ? [data[locId][Y - 7]] : slice(locId, n, n); } // single day compares to same weekday last week
+function agg(days) {
+  const a = { sales: 0, laborCost: 0, hours: 0, ot: 0, guests: 0, card: 0, jar: 0, flagsOpen: 0, flags: 0, urgent: 0, wu: 0, wuPending: 0, overdue: 0, late: 0, closed: 0, submitted: 0, tipsOpen: 0, n: days.length };
+  for (const x of days) {
+    a.sales += x.sales; a.laborCost += x.laborCost; a.hours += x.hours; a.ot += x.ot; a.guests += x.guests; a.card += x.card; a.jar += x.jar;
+    a.flags += x.flags.length; a.flagsOpen += x.flags.filter(f => f.open).length; a.urgent += x.flags.filter(f => f.urgent && f.open).length;
+    a.wu += x.writeups.length; a.wuPending += x.writeups.filter(w => w.state !== 'Signed' && w.state !== 'Refused').length;
+    if (x.report === 'overdue') a.overdue++; if (x.report === 'late') a.late++; if (x.report === 'closed') a.closed++;
+    if (x.report === 'submitted' || x.report === 'late') a.submitted++;
+    if (x.tips === 'draft' || x.tips === 'reopened') a.tipsOpen++;
+  }
+  a.laborPct = a.sales ? a.laborCost / a.sales * 100 : 0;
+  const due = a.n - a.closed - days.filter(x => x.report === 'draft').length;
+  a.onTime = due ? (a.submitted - a.late) / due * 100 : 100;
+  return a;
+}
+// Open HR Flags are a live queue: count every open flag regardless of the selected range
+const openNow = locId => data[locId].reduce((s, x) => s + x.flags.filter(f => f.open).length, 0);
+const urgentNow = locId => data[locId].reduce((s, x) => s + x.flags.filter(f => f.open && f.urgent).length, 0);
+const orgOpenNow = () => LOCS.reduce((s, L) => s + openNow(L.id), 0);
+const orgUrgentNow = () => LOCS.reduce((s, L) => s + urgentNow(L.id), 0);
+function orgAgg(n, off = 0) { return agg(LOCS.flatMap(L => off ? prior(L.id, n) : slice(L.id, n))); }
+
+// ---------- Formatting ----------
+const $ = n => n >= 10000 ? '$' + (n / 1000).toFixed(1) + 'k' : '$' + Math.round(n).toLocaleString();
+const pct = n => n.toFixed(1) + '%';
+function delta(cur, prev, { invert = false, pts = false } = {}) {
+  if (!prev) return '';
+  const d = pts ? cur - prev : (cur - prev) / prev * 100;
+  const good = invert ? d < 0 : d > 0;
+  const s = (d > 0 ? '+' : '') + d.toFixed(1) + (pts ? ' pts' : '%');
+  return `<span class="${Math.abs(d) < 0.05 ? 'muted' : good ? 'up' : 'down'}">${s}</span>`;
+}
+const REPORT_PILL = { submitted: ['p-good', 'Submitted'], late: ['p-warn', 'Late'], overdue: ['p-bad', 'Overdue'], closed: ['p-none', 'Closed'], draft: ['p-info', 'Draft, due 10:00'] };
+const TIP_PILL = { finalized: ['p-good', 'Finalized'], draft: ['p-info', 'Draft'], reopened: ['p-warn', 'Reopened'], none: ['p-none', 'No pool'] };
+const pill = (m, k) => `<span class="pill ${m[k][0]}">${m[k][1]}</span>`;
+const laborCls = p => p > LABOR_TARGET + 3 ? 'p-bad' : p > LABOR_TARGET ? 'p-warn' : 'p-good';
+const locOf = id => LOCS.find(l => l.id === id);
+const locName = L => `${L.name} <span class="muted">${L.city}, ${L.st}</span>`;
+function spark(vals, w = 110, h = 26, color = 'var(--accent)') {
+  const mx = Math.max(...vals), mn = Math.min(...vals);
+  const pts = vals.map((v, k) => `${(k / (vals.length - 1)) * w},${h - 2 - ((v - mn) / (mx - mn || 1)) * (h - 4)}`).join(' ');
+  return `<svg width="${w}" height="${h}"><polyline fill="none" stroke="${color}" stroke-width="1.5" points="${pts}"/></svg>`;
+}
+
+// ---------- State ----------
+const params = new URLSearchParams(location.search);
+const VARIANTS = [['A', 'Scorecard, full-page drill'], ['B', 'Needs attention, split pane'], ['C', 'Location x Business Day grid, drawer']];
+const S = {
+  variant: VARIANTS.some(v => v[0] === params.get('variant')) ? params.get('variant') : 'A',
+  role: ['admin', 'ops', 'hr'].includes(params.get('role')) ? params.get('role') : 'admin',
+  opsDiscipline: false,
+  range: RANGES[params.get('range')] ? params.get('range') : '7',
+  loc: LOCS.some(l => l.id === params.get('loc')) ? params.get('loc') : null,
+  day: params.get('day') != null && params.get('day') !== '' && +params.get('day') >= 0 && +params.get('day') <= Y ? +params.get('day') : null, // drill state
+  metric: 'report', // variant C
+  sel: params.get('sel'), // variant B selected item key
+};
+const canDiscipline = () => S.role !== 'ops' || S.opsDiscipline;
+function set(patch) { Object.assign(S, patch); const p = new URLSearchParams(location.search); p.set('variant', S.variant); p.set('role', S.role); p.set('range', S.range);
+  for (const k of ['loc', 'day', 'sel']) S[k] == null ? p.delete(k) : p.set(k, S[k]); history.replaceState(null, '', '?' + p); render(); }
+
+// ---------- Shared chrome ----------
+function chrome() {
+  const roles = [['admin', 'Org Admin'], ['ops', 'Ops'], ['hr', 'HR']];
+  return `<div class="topbar">
+    <div class="brand">Opsell<small>${ORG}</small></div><span class="demo-tag">Demo Organization</span>
+    <div class="spacer"></div>
+    <span class="muted" style="font-size:13px">Persona</span>
+    <div class="seg">${roles.map(([k, l]) => `<button class="${S.role === k ? 'on' : ''}" onclick="set({role:'${k}'})">${l}</button>`).join('')}</div>
+    <label class="toggle"><input type="checkbox" ${S.opsDiscipline ? 'checked' : ''} onchange="set({opsDiscipline:this.checked})"> Org toggle: Ops reads discipline</label>
+  </div>`;
+}
+function rangeSeg() {
+  return `<div class="seg">${Object.entries(RANGES).map(([k, v]) => `<button class="${S.range === k ? 'on' : ''}" onclick="set({range:'${k}'})">${v.label}</button>`).join('')}</div>
+    <span class="muted" style="font-size:12px">vs ${S.range === 'y' ? 'same weekday last week' : 'prior ' + RANGES[S.range].label.toLowerCase().replace('last ', '')}</span>`;
+}
+
+// ---------- Shared: Business Day (Closing Report snapshot + people/tips) ----------
+function businessDay(locId, i) {
+  const L = locOf(locId), x = data[locId][i], lw = data[locId][i - 7];
+  if (x.report === 'closed') return `<div class="panel"><h2>${fmtDay(x.d)} - Closed</h2><p class="muted">${x.closedReason}. No Closing Report, no Tip Pool.</p></div>`;
+  const reportBody = (x.report === 'overdue' || x.report === 'draft')
+    ? `<p class="muted">${x.report === 'overdue' ? 'No Closing Report submitted. Past the 10:00 deadline.' : 'Draft in progress; due 10:00 today.'} Live figures from the source shown below.</p>` : '';
+  const flags = canDiscipline() ? (x.flags.length ? x.flags.map(f => `<div class="note"><span class="pill ${f.urgent ? 'p-bad' : f.open ? 'p-warn' : 'p-none'}">${f.cat}${f.urgent ? ' - urgent' : ''}</span> <b>${f.who}</b> <span class="muted">${f.open ? 'Open' : 'Resolved'}</span>${f.quote ? `<div class="sec">"${f.quote}"</div>` : ''}</div>`).join('') : '<p class="muted">None.</p>')
+    : '<p class="hidden-note">Hidden for Ops (Org toggle off).</p>';
+  const wus = canDiscipline() ? (x.writeups.length ? x.writeups.map(w => `<div class="note"><b>${w.who}</b> ${w.level} - <span class="muted">${w.state}</span></div>`).join('') : '<p class="muted">None.</p>') : '<p class="hidden-note">Hidden for Ops (Org toggle off).</p>';
+  const bars = obj => { const t = Object.values(obj).reduce((s, v) => s + v, 0); return Object.entries(obj).map(([k, v]) => `<div style="display:flex;gap:8px;align-items:center;margin:4px 0"><span style="width:80px">${k}</span><div class="bar" style="flex:1"><span style="width:${v / t * 100}%"></span></div><span class="num r" style="width:64px;text-align:right">${$(v)}</span></div>`).join(''); };
+  return `<div class="stack">
+    <div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">${fmtDay(x.d)} <span class="muted" style="font-weight:400">- ${L.name}</span></h2><div>Closing Report ${pill(REPORT_PILL, x.report)} &nbsp; Tips ${pill(TIP_PILL, x.tips)}</div></div>${reportBody}
+      ${x.unapproved ? `<p class="pill p-warn" style="margin-top:8px">${x.unapproved} timesheets unapproved, 1 open punch</p>` : ''}
+    </div>
+    <div class="kpis four">
+      <div class="kpi"><div class="label">Net sales</div><div class="val num">${$(x.sales)}</div><div class="delta">${delta(x.sales, lw?.sales)} vs ${lw ? fmtShort(lw.d) : '-'}</div></div>
+      <div class="kpi"><div class="label">Guests</div><div class="val num">${x.guests}</div><div class="delta">${delta(x.guests, lw?.guests)}</div></div>
+      <div class="kpi"><div class="label">Labor %</div><div class="val num" style="color:var(--${x.laborPct > LABOR_TARGET + 3 ? 'bad' : x.laborPct > LABOR_TARGET ? 'warn' : 'ink'})">${pct(x.laborPct)}</div><div class="delta">${delta(x.laborPct, lw?.laborPct, { invert: true, pts: true })} · ${x.hours}h, ${x.ot}h OT</div></div>
+      <div class="kpi"><div class="label">Tip Pool</div><div class="val num">${$(x.card + x.jar)}</div><div class="delta muted">${$(x.card)} card + ${$(x.jar)} jar</div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Sales by daypart</h3>${bars(x.dayparts)}<h3 style="margin-top:14px">By category</h3>${bars(x.categories)}</div>
+      <div class="panel"><h3>Top 5 by labor cost</h3><table><tr><th>Employee</th><th>Position</th><th class="r">Hours</th><th class="r">Cost</th></tr>${x.top5.map(p => `<tr><td>${p.name}</td><td class="muted">${p.pos}</td><td class="r num">${p.hours.toFixed(1)}</td><td class="r num">${$(p.cost)}</td></tr>`).join('')}</table></div>
+    </div>
+    <div class="grid3">
+      <div class="panel"><h3>Closing notes</h3>${x.report === 'submitted' || x.report === 'late' ? x.notes.map(n => `<div class="note"><div class="sec">${n.sec}</div>${n.text}</div>`).join('') : '<p class="muted">Not submitted.</p>'}</div>
+      <div class="panel"><h3>HR Flags</h3>${flags}</div>
+      <div class="panel"><h3>Write-ups</h3>${wus}</div>
+    </div>
+  </div>`;
+}
+
+// ---------- Shared: Location over a range ----------
+function locationView(locId, onDay, fixedN) {
+  const n = fixedN || (RANGES[S.range].n === 1 ? 14 : RANGES[S.range].n);
+  const days = slice(locId, n), a = agg(days), p = agg(prior(locId, n));
+  const mx = Math.max(...days.map(x => x.sales));
+  const w = Math.max(6, Math.min(26, Math.floor(860 / days.length) - 2));
+  const chart = `<svg width="100%" height="150" viewBox="0 0 ${days.length * (w + 2)} 150" preserveAspectRatio="none">
+    ${days.map((x, k) => `<rect x="${k * (w + 2)}" y="${140 - x.sales / mx * 120}" width="${w}" height="${x.sales / mx * 120}" fill="${x.report === 'overdue' ? 'var(--bad)' : x.report === 'closed' ? '#ccc' : '#9db8ae'}" style="cursor:pointer" onclick="${onDay}(${x.i})"><title>${fmtDay(x.d)} ${$(x.sales)} · labor ${pct(x.laborPct)}</title></rect>`).join('')}
+    <polyline fill="none" stroke="var(--warn)" stroke-width="2" vector-effect="non-scaling-stroke" points="${days.map((x, k) => `${k * (w + 2) + w / 2},${140 - Math.min(x.laborPct, 40) / 40 * 130}`).join(' ')}"/>
+  </svg>`;
+  return `<div class="stack">
+    <div class="kpis four">
+      <div class="kpi"><div class="label">Net sales</div><div class="val num">${$(a.sales)}</div><div class="delta">${delta(a.sales, p.sales)}</div></div>
+      <div class="kpi"><div class="label">Labor %</div><div class="val num">${pct(a.laborPct)}</div><div class="delta">${delta(a.laborPct, p.laborPct, { invert: true, pts: true })} · target ${LABOR_TARGET}%</div></div>
+      <div class="kpi"><div class="label">Reports on time</div><div class="val num">${Math.round(a.onTime)}%</div><div class="delta muted">${a.overdue} overdue, ${a.late} late</div></div>
+      <div class="kpi"><div class="label">Open HR Flags (now)</div><div class="val num">${canDiscipline() ? openNow(locId) : '-'}</div><div class="delta muted">${canDiscipline() ? a.wu + ' Write-ups' : 'hidden for Ops'}</div></div>
+    </div>
+    <div class="panel"><h3>Daily sales (bars) and labor % (line), last ${days.length} Business Days - click a bar</h3>${chart}</div>
+    <div class="panel scroll-x"><table><tr><th>Business Day</th><th>Closing Report</th><th class="r">Sales</th><th class="r">vs LW</th><th class="r">Labor %</th><th class="r">OT h</th><th>Tips</th>${canDiscipline() ? '<th class="r">HR Flags</th><th class="r">Write-ups</th>' : ''}</tr>
+      ${[...days].reverse().map(x => { const lw = data[locId][x.i - 7]; return `<tr class="click" onclick="${onDay}(${x.i})"><td style="white-space:nowrap">${fmtDay(x.d)}</td><td>${pill(REPORT_PILL, x.report)}</td><td class="r num">${$(x.sales)}</td><td class="r num">${lw ? delta(x.sales, lw.sales) : ''}</td><td class="r"><span class="pill ${laborCls(x.laborPct)}">${pct(x.laborPct)}</span></td><td class="r num">${x.ot}</td><td>${pill(TIP_PILL, x.tips)}</td>${canDiscipline() ? `<td class="r num">${x.flags.length || ''}</td><td class="r num">${x.writeups.length || ''}</td>` : ''}</tr>`; }).join('')}
+    </table></div>
+  </div>`;
+}
+
+// ---------- Variant A: Scorecard with full-page drill ----------
+function VariantA() {
+  if (S.loc && S.day != null) {
+    const L = locOf(S.loc);
+    return `<div class="crumbs"><a onclick="set({loc:null,day:null})">${ORG}</a> › <a onclick="set({day:null})">${L.name}</a> › <b>${fmtDay(data[S.loc][S.day].d)}</b></div>${businessDay(S.loc, S.day)}`;
+  }
+  if (S.loc) {
+    const L = locOf(S.loc);
+    return `<div class="crumbs"><a onclick="set({loc:null})">${ORG}</a> › <b>${L.name}</b></div>
+      <div class="controls"><h1>${locName(L)}</h1><div class="spacer"></div>${rangeSeg()}</div>${locationView(S.loc, 'aDay')}`;
+  }
+  const n = RANGES[S.range].n, a = orgAgg(n), p = orgAgg(n, 1);
+  const rows = LOCS.map(L => ({ L, a: agg(slice(L.id, n)), p: agg(prior(L.id, n)), trend: slice(L.id, 28).map(x => x.sales) }));
+  return `<div class="controls"><h1>${ORG} <span class="muted" style="font-weight:400">· 5 Locations</span></h1><div class="spacer"></div>${rangeSeg()}</div>
+    <div class="kpis">
+      <div class="kpi"><div class="label">Net sales</div><div class="val num">${$(a.sales)}</div><div class="delta">${delta(a.sales, p.sales)}</div></div>
+      <div class="kpi"><div class="label">Guests</div><div class="val num">${a.guests.toLocaleString()}</div><div class="delta">${delta(a.guests, p.guests)}</div></div>
+      <div class="kpi"><div class="label">Labor %</div><div class="val num">${pct(a.laborPct)}</div><div class="delta">${delta(a.laborPct, p.laborPct, { invert: true, pts: true })} · target ${LABOR_TARGET}%</div></div>
+      <div class="kpi"><div class="label">Closing Reports on time</div><div class="val num">${Math.round(a.onTime)}%</div><div class="delta muted">${a.overdue} overdue · ${a.late} late</div></div>
+      <div class="kpi"><div class="label">Tip Distributions not final</div><div class="val num">${a.tipsOpen}</div><div class="delta muted">${$(a.card + a.jar)} pooled</div></div>
+      ${canDiscipline() ? `<div class="kpi"><div class="label">Open HR Flags (now)</div><div class="val num">${orgOpenNow()}</div><div class="delta ${orgUrgentNow() ? 'down' : 'muted'}">${orgUrgentNow()} urgent · ${a.wu} Write-ups in range</div></div>` : ''}
+    </div>
+    <div class="panel" style="padding:0"><table>
+      <tr><th style="padding-left:16px">Location</th><th class="r">Net sales</th><th class="r">vs prior</th><th>28-day trend</th><th class="r">Labor %</th><th class="r">OT h</th><th class="r">Reports on time</th><th class="r">Tips not final</th>${canDiscipline() ? '<th class="r">Open HR Flags (now)</th><th class="r">Write-ups</th>' : ''}</tr>
+      ${rows.map(({ L, a, p, trend }) => `<tr class="click" onclick="set({loc:'${L.id}'})">
+        <td style="padding-left:16px">${locName(L)}</td><td class="r num">${$(a.sales)}</td><td class="r num">${delta(a.sales, p.sales)}</td><td>${spark(trend)}</td>
+        <td class="r"><span class="pill ${laborCls(a.laborPct)}">${pct(a.laborPct)}</span></td><td class="r num">${a.ot}</td>
+        <td class="r"><span class="pill ${a.overdue ? 'p-bad' : a.late ? 'p-warn' : 'p-good'}">${Math.round(a.onTime)}%</span></td>
+        <td class="r num">${a.tipsOpen || '-'}</td>
+        ${canDiscipline() ? `<td class="r num">${openNow(L.id) || '-'}${urgentNow(L.id) ? ' <span class="pill p-bad">urgent</span>' : ''}</td><td class="r num">${a.wu || '-'}</td>` : ''}
+      </tr>`).join('')}
+      <tr style="font-weight:600"><td style="padding-left:16px">All Locations</td><td class="r num">${$(a.sales)}</td><td class="r num">${delta(a.sales, p.sales)}</td><td></td><td class="r">${pct(a.laborPct)}</td><td class="r num">${a.ot}</td><td class="r">${Math.round(a.onTime)}%</td><td class="r num">${a.tipsOpen}</td>${canDiscipline() ? `<td class="r num">${orgOpenNow()}</td><td class="r num">${a.wu}</td>` : ''}</tr>
+    </table></div>
+    ${S.role === 'ops' && !S.opsDiscipline ? '<p class="hidden-note">HR Flag and Write-up columns hidden: Ops sees no discipline unless the Org Admin toggle allows it.</p>' : ''}`;
+}
+function aDay(i) { set({ day: i }); }
+
+// ---------- Variant B: Needs-attention inbox with split pane ----------
+function attentionItems() {
+  const items = [];
+  const push = (group, key, loc, i, title, sub, sev) => items.push({ group, key, loc, i, title, sub, sev });
+  for (const L of LOCS) {
+    data[L.id].slice(-14).forEach(x => {
+      if (canDiscipline()) x.flags.filter(f => f.open && f.urgent).forEach(f => push('Urgent HR Flags', 'u' + L.id + x.i, L.id, x.i, `${f.cat}: ${f.who}`, `${L.name} · ${fmtDay(x.d)} · open ${Y - x.i + 1} days`, 3));
+      if (x.report === 'overdue') push('Overdue Closing Reports', 'o' + L.id + x.i, L.id, x.i, `${L.name} - ${fmtDay(x.d)}`, `No report, ${Y - x.i} days past deadline`, 3);
+      if (canDiscipline()) x.writeups.filter(w => w.state === 'Awaiting HR approval').forEach(w => push('Write-ups awaiting HR', 'w' + L.id + x.i, L.id, x.i, `${w.level} for ${w.who}`, `${L.name} · drafted ${fmtDay(x.d)}`, 2));
+      if (x.tips === 'reopened' || (x.tips === 'draft' && x.i < Y)) push('Tip Distributions not finalized', 't' + L.id + x.i, L.id, x.i, `${L.name} - ${fmtDay(x.d)}`, x.tips === 'reopened' ? 'Reopened by Ops, needs re-finalize before Pay Period export' : 'Still Draft', 2);
+      if (x.unapproved) push('Timesheets unapproved (yesterday)', 'ts' + L.id, L.id, x.i, `${L.name}: ${x.unapproved} entries`, 'Blocks a clean Closing Report snapshot', 1);
+    });
+    const l7 = agg(slice(L.id, 7));
+    if (l7.laborPct > LABOR_TARGET + 2) push('Labor over target (7 days)', 'l' + L.id, L.id, Y, `${L.name}: ${pct(l7.laborPct)} vs ${LABOR_TARGET}% target`, `${l7.ot}h overtime in 7 days`, 2);
+    if (canDiscipline()) { const open = data[L.id].flatMap(x => x.flags.filter(f => f.open && !f.urgent)).length; if (open) push('Open HR Flags', 'f' + L.id, L.id, null, `${L.name}: ${open} open`, 'In HR queue', 1); }
+  }
+  return items;
+}
+function VariantB() {
+  const items = attentionItems();
+  const groups = [...new Set(items.map(x => x.group))];
+  const order = S.role === 'hr' ? ['Urgent HR Flags', 'Write-ups awaiting HR', 'Open HR Flags'] : ['Urgent HR Flags', 'Overdue Closing Reports', 'Labor over target (7 days)'];
+  groups.sort((g1, g2) => (order.indexOf(g1) + 1 || 99) - (order.indexOf(g2) + 1 || 99));
+  items.sort((x1, x2) => groups.indexOf(x1.group) - groups.indexOf(x2.group));
+  // S.sel is an item key, or 'day:<loc>:<i>' / 'loc:<loc>' after drilling inside the detail pane
+  const [kind, dLoc, dI] = (S.sel || '').split(':');
+  const sel = kind === 'day' ? { loc: dLoc, i: +dI } : kind === 'loc' ? { loc: dLoc, i: null } : (items.find(x => x.key === S.sel) || items[0]);
+  const y = orgAgg(1), lw = orgAgg(1, 1), w7 = orgAgg(7), p7 = orgAgg(7, 1);
+  const detail = !sel ? '<div class="panel muted">Nothing needs attention.</div>'
+    : sel.i == null ? `<div class="crumbs" data-loc="${sel.loc}"><b>${locOf(sel.loc).name}</b> <span>· last 14 Business Days</span></div>${locationView(sel.loc, 'bDay', 14)}`
+    : `<div class="crumbs" data-loc="${sel.loc}"><a onclick="bLoc('${sel.loc}')">${locOf(sel.loc).name}</a> › <b>${fmtDay(data[sel.loc][sel.i].d)}</b></div>${businessDay(sel.loc, sel.i)}`;
+  return `<div class="controls"><h1>Needs attention</h1><span class="muted">${ORG} · 5 Locations · last 14 Business Days</span></div>
+    <div class="orgline">
+      <span>Yesterday <b class="num">${$(y.sales)}</b> ${delta(y.sales, lw.sales)}</span>
+      <span>7-day sales <b class="num">${$(w7.sales)}</b> ${delta(w7.sales, p7.sales)}</span>
+      <span>7-day labor <b class="num">${pct(w7.laborPct)}</b> ${delta(w7.laborPct, p7.laborPct, { invert: true, pts: true })}</span>
+      <span>Reports on time <b class="num">${Math.round(w7.onTime)}%</b></span>
+      ${canDiscipline() ? `<span>Open HR Flags <b class="num">${orgOpenNow()}</b></span>` : ''}
+    </div>
+    <div class="split">
+      <div>${groups.map(g => { const its = items.filter(x => x.group === g); return `<div class="inbox-group"><h3><span>${g}</span><span>${its.length}</span></h3>${its.map(x => `<div class="item ${x === sel ? 'sel' : ''}" onclick="set({sel:'${x.key}'})"><span class="pill ${x.sev === 3 ? 'p-bad' : x.sev === 2 ? 'p-warn' : 'p-info'}">${x.sev === 3 ? '!' : x.sev === 2 ? '•' : 'i'}</span><div><div class="t">${x.title}</div><div class="s">${x.sub}</div></div></div>`).join('')}</div>`; }).join('')}
+      ${!canDiscipline() ? '<p class="hidden-note">HR Flag and Write-up items hidden for Ops.</p>' : ''}</div>
+      <div class="sticky">${detail}</div>
+    </div>`;
+}
+function bDay(i) { const cur = document.querySelector('.sticky [data-loc]').dataset.loc; set({ sel: `day:${cur}:${i}` }); }
+function bLoc(loc) { set({ sel: `loc:${loc}` }); }
+
+// ---------- Variant C: Location x Business Day grid with drawer ----------
+const METRICS = {
+  report: { label: 'Closing Report', cell: x => ({ submitted: ['#cfe8d8', ''], late: ['#f6dfa9', 'L'], overdue: ['#f2b8b2', '!'], closed: ['#e2e0da', 'C'], draft: ['#cfdcee', 'D'] })[x.report], legend: [['#cfe8d8', 'Submitted'], ['#f6dfa9', 'Late'], ['#f2b8b2', 'Overdue'], ['#e2e0da', 'Closed'], ['#cfdcee', 'Draft']] },
+  sales: { label: 'Sales vs same weekday LW', cell: (x, L) => { const lw = data[L.id][x.i - 7]; if (!lw || x.report === 'closed') return ['#eee', '']; const d = (x.sales - lw.sales) / lw.sales * 100; return [d > 6 ? '#9fd3b2' : d > 0 ? '#d4ecdc' : d > -6 ? '#f8dcd8' : '#eea69f', Math.round(d)]; }, legend: [['#9fd3b2', '> +6%'], ['#d4ecdc', '0 to +6%'], ['#f8dcd8', '0 to -6%'], ['#eea69f', '< -6%']] },
+  labor: { label: 'Labor %', cell: x => x.report === 'closed' ? ['#eee', ''] : [x.laborPct > LABOR_TARGET + 3 ? '#f2b8b2' : x.laborPct > LABOR_TARGET ? '#f6dfa9' : '#cfe8d8', Math.round(x.laborPct)], legend: [['#cfe8d8', `≤ ${LABOR_TARGET}%`], ['#f6dfa9', `${LABOR_TARGET}-${LABOR_TARGET + 3}%`], ['#f2b8b2', `> ${LABOR_TARGET + 3}%`]] },
+  tips: { label: 'Tip Distribution', cell: x => ({ finalized: ['#cfe8d8', ''], draft: ['#cfdcee', 'D'], reopened: ['#f6dfa9', 'R'], none: ['#e2e0da', ''] })[x.tips], legend: [['#cfe8d8', 'Finalized'], ['#cfdcee', 'Draft'], ['#f6dfa9', 'Reopened'], ['#e2e0da', 'No pool']] },
+  flags: { label: 'HR Flags', disc: true, cell: x => { const o = x.flags.filter(f => f.open).length, u = x.flags.some(f => f.urgent && f.open); return u ? ['#eea69f', '!'] : o ? ['#f6dfa9', o] : x.flags.length ? ['#e2e0da', x.flags.length] : ['#f3f2ee', '']; }, legend: [['#eea69f', 'Urgent open'], ['#f6dfa9', 'Open'], ['#e2e0da', 'Resolved']] },
+};
+function VariantC() {
+  if (!canDiscipline() && METRICS[S.metric].disc) S.metric = 'report';
+  const n = Math.max(14, Math.min(RANGES[S.range].n, 42));
+  const idx = Array.from({ length: n }, (_, k) => Y - n + 1 + k);
+  const M = METRICS[S.metric];
+  const grid = `<table class="hm"><tr><th></th>${idx.map(i => { const d = dates[i]; return `<th class="day ${d.getDay() === 1 ? 'wk' : ''}">${d.toLocaleDateString('en-US', { weekday: 'narrow' })}<br>${d.getDate()}</th>`; }).join('')}<th></th></tr>
+    ${LOCS.map(L => { const a = agg(idx.map(i => data[L.id][i])); return `<tr><th class="loc"><a onclick="set({loc:'${L.id}',day:null})">${L.name}</a><div class="muted" style="font-weight:400;font-size:11px">${L.city}, ${L.st}</div></th>
+      ${idx.map(i => { const [bg, t] = M.cell(data[L.id][i], L); return `<td><div class="cell ${S.loc === L.id && S.day === i ? 'sel' : ''}" style="background:${bg}" title="${fmtDay(dates[i])}" onclick="set({loc:'${L.id}',day:${i}})">${t}</div></td>`; }).join('')}
+      <td style="padding-left:12px;font-size:12px;white-space:nowrap" class="muted num">${$(a.sales)} · ${pct(a.laborPct)} · ${a.overdue ? `<span class="down">${a.overdue} overdue</span>` : 'on time'}</td></tr>`; }).join('')}
+  </table>`;
+  const drawer = S.loc ? `<div class="drawer-bg" onclick="set({loc:null,day:null})"></div><div class="drawer"><button class="close" onclick="set({loc:null,day:null})">Close ✕</button>
+    ${S.day != null ? `<div class="crumbs"><a onclick="set({day:null})">${locOf(S.loc).name}</a> › <b>${fmtDay(dates[S.day])}</b> <span style="margin-left:12px"><a onclick="set({day:Math.max(0,S.day-1)})">‹ prev day</a> · <a onclick="set({day:Math.min(Y,S.day+1)})">next day ›</a></span></div>${businessDay(S.loc, S.day)}`
+    : `<h1 style="margin-bottom:12px">${locName(locOf(S.loc))}</h1>${locationView(S.loc, 'cDay')}`}</div>` : '';
+  return `<div class="controls"><h1>${ORG}</h1><span class="muted">Every Location, every Business Day</span><div class="spacer"></div>${rangeSeg()}</div>
+    <div class="panel" style="margin-bottom:16px"><div class="controls" style="margin-bottom:12px"><span class="muted">Color by</span><div class="seg">${Object.entries(METRICS).filter(([, m]) => canDiscipline() || !m.disc).map(([k, m]) => `<button class="${S.metric === k ? 'on' : ''}" onclick="set({metric:'${k}'})">${m.label}</button>`).join('')}</div></div>
+      <div style="overflow-x:auto">${grid}</div>
+      <div class="legend">${M.legend.map(([c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join('')}<span>Click a cell for the Business Day, a Location name for its trend.</span></div>
+    </div>
+    ${(() => { const n2 = RANGES[S.range].n; const a = orgAgg(n2), p = orgAgg(n2, 1); return `<div class="kpis"><div class="kpi"><div class="label">Net sales (${RANGES[S.range].label.toLowerCase()})</div><div class="val num">${$(a.sales)}</div><div class="delta">${delta(a.sales, p.sales)}</div></div><div class="kpi"><div class="label">Labor %</div><div class="val num">${pct(a.laborPct)}</div><div class="delta">${delta(a.laborPct, p.laborPct, { invert: true, pts: true })}</div></div><div class="kpi"><div class="label">Reports on time</div><div class="val num">${Math.round(a.onTime)}%</div></div><div class="kpi"><div class="label">Tips not final</div><div class="val num">${a.tipsOpen}</div></div>${canDiscipline() ? `<div class="kpi"><div class="label">Open HR Flags (now)</div><div class="val num">${orgOpenNow()}</div></div>` : ''}</div>`; })()}
+    ${drawer}`;
+}
+function cDay(i) { set({ day: i }); }
+
+// ---------- Render + switcher ----------
+function render() {
+  const body = { A: VariantA, B: VariantB, C: VariantC }[S.variant]();
+  document.getElementById('app').innerHTML = chrome() + `<div class="wrap">${body}</div>`;
+  const v = VARIANTS.find(v => v[0] === S.variant);
+  document.getElementById('protoLbl').innerHTML = `PROTOTYPE · <b>${v[0]}</b> (${v[1]})`;
+}
+function cycle(dir) { const k = VARIANTS.findIndex(v => v[0] === S.variant); set({ variant: VARIANTS[(k + dir + VARIANTS.length) % VARIANTS.length][0], loc: null, day: null, sel: null }); }
+document.getElementById('prev').onclick = () => cycle(-1);
+document.getElementById('next').onclick = () => cycle(1);
+document.addEventListener('keydown', e => { if (e.target.closest('input, textarea, [contenteditable]')) return; if (e.key === 'ArrowLeft') cycle(-1); if (e.key === 'ArrowRight') cycle(1); if (e.key === 'Escape' && S.loc) set({ loc: null, day: null }); });
+render();
+</script>
+</body>
+</html>
