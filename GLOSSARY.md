@@ -72,6 +72,18 @@ _Avoid_: Comment, appeal, dispute
 
 ## Tips
 
+**Tip Pool**:
+The tips a Location collects in one Business Day that are shared among its eligible Employees: card tips plus the counted cash tip jar, but not cash an Employee declares as received directly.
+_Avoid_: Tip jar, tip bucket, shift tips
+
 **Tip Distribution**:
-The split of tips collected during a shift among eligible Employees in proportion to hours worked.
-_Avoid_: Tip calculation, tip out
+The split of one Tip Pool among the Employees eligible on that Business Day, in proportion to their hours weighted by the Position they worked.
+_Avoid_: Tip calculation, tip out, tip split
+
+**Tip Policy**:
+A Location's effective-dated rules for its Tip Pool: which Positions are eligible, each Position's weight, and whether a tip credit is taken.
+_Avoid_: Tip rules, tip settings
+
+**Pay Period**:
+The Organization's recurring payroll window (weekly, biweekly or semimonthly) that groups Tip Distributions for export to payroll.
+_Avoid_: Pay cycle, payroll week
