@@ -121,6 +121,14 @@
   .me { display: flex; gap: 10px; align-items: center; padding: 10px; border-top: 1px solid var(--line); }
   .av { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
   .main { padding: 24px 32px 96px; max-width: 1240px; width: 100%; }
+  .navg { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 14px 10px 4px; font-weight: 600; }
+  .kpis.kpi4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kpi.go { cursor: pointer; } .kpi.go:hover { border-color: #c9c6bd; }
+  .ph { display: flex; justify-content: space-between; align-items: baseline; }
+  .row1 { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .row1:hover { background: #faf9f6; }
+  .row1 b { font-weight: 600; }
+  .ell { overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
   .home-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 16px; }
   .proto-strip { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: #111; color: #ccc; font-size: 12px; position: sticky; top: 0; z-index: 6; }
   .proto-strip button { background: #2a2a2a; color: #ddd; border: 0; border-radius: 6px; padding: 3px 10px; font-size: 12px; }
@@ -189,7 +197,7 @@ const data = {}; // data[locId][i] = Business Day record
 for (const L of LOCS) {
   data[L.id] = dates.map((d, i) => {
     const r = rng(hash(L.id + iso(d)));
-    const sales = Math.round(L.base * DOW[d.getDay()] * (1 + 0.04 * i / DAYS) * (0.92 + 0.16 * r()));
+    const sales = Math.round(L.base * DOW[d.getDay()] * (1 + 0.04 * i / DAYS) * (0.84 + 0.32 * r()));
     const bf = 0.42 + 0.06 * r(), lu = 0.36 + 0.05 * r();
     const dayparts = { Breakfast: Math.round(sales * bf), Lunch: Math.round(sales * lu), Afternoon: 0 };
     dayparts.Afternoon = sales - dayparts.Breakfast - dayparts.Lunch;
@@ -284,7 +292,7 @@ function spark(vals, w = 110, h = 26, color = 'var(--accent)') {
 
 // ---------- State ----------
 const params = new URLSearchParams(location.search);
-const VARIANTS = [['D', 'Rev 2: sidebar shell, focused Home'], ['A', 'Scorecard, full-page drill'], ['B', 'Needs attention, split pane'], ['C', 'Location x Business Day grid, drawer']];
+const VARIANTS = [['D', 'Rev 3: sidebar shell, one-screen Home'], ['A', 'Scorecard, full-page drill'], ['B', 'Needs attention, split pane'], ['C', 'Location x Business Day grid, drawer']];
 const S = {
   variant: VARIANTS.some(v => v[0] === params.get('variant')) ? params.get('variant') : 'D',
   section: params.get('section') || 'home',
@@ -465,10 +473,10 @@ function bLoc(loc) { set({ sel: `loc:${loc}` }); }
 
 // ---------- Variant C: Location x Business Day grid with drawer ----------
 const METRICS = {
-  report: { label: 'Closing Report', cell: x => ({ submitted: ['#cfe8d8', ''], late: ['#f6dfa9', 'L'], overdue: ['#f2b8b2', '!'], closed: ['#e2e0da', 'C'], draft: ['#cfdcee', 'D'] })[x.report], legend: [['#cfe8d8', 'Submitted'], ['#f6dfa9', 'Late'], ['#f2b8b2', 'Overdue'], ['#e2e0da', 'Closed'], ['#cfdcee', 'Draft']] },
+  report: { label: 'Closing Report', cell: x => ({ submitted: ['#cfe8d8', '✓'], late: ['#f6dfa9', 'L'], overdue: ['#f2b8b2', '!'], closed: ['#e2e0da', 'C'], draft: ['#cfdcee', 'D'] })[x.report], legend: [['#cfe8d8', 'Submitted'], ['#f6dfa9', 'Late'], ['#f2b8b2', 'Overdue'], ['#e2e0da', 'Closed'], ['#cfdcee', 'Draft']] },
   sales: { label: 'Sales vs same weekday LW', cell: (x, L) => { const lw = data[L.id][x.i - 7]; if (!lw || x.report === 'closed') return ['#eee', '']; const d = (x.sales - lw.sales) / lw.sales * 100; return [d > 6 ? '#9fd3b2' : d > 0 ? '#d4ecdc' : d > -6 ? '#f8dcd8' : '#eea69f', Math.round(d)]; }, legend: [['#9fd3b2', '> +6%'], ['#d4ecdc', '0 to +6%'], ['#f8dcd8', '0 to -6%'], ['#eea69f', '< -6%']] },
   labor: { label: 'Labor %', cell: x => x.report === 'closed' ? ['#eee', ''] : [x.laborPct > LABOR_TARGET + 3 ? '#f2b8b2' : x.laborPct > LABOR_TARGET ? '#f6dfa9' : '#cfe8d8', Math.round(x.laborPct)], legend: [['#cfe8d8', `≤ ${LABOR_TARGET}%`], ['#f6dfa9', `${LABOR_TARGET}-${LABOR_TARGET + 3}%`], ['#f2b8b2', `> ${LABOR_TARGET + 3}%`]] },
-  tips: { label: 'Tip Distribution', cell: x => ({ finalized: ['#cfe8d8', ''], draft: ['#cfdcee', 'D'], reopened: ['#f6dfa9', 'R'], none: ['#e2e0da', ''] })[x.tips], legend: [['#cfe8d8', 'Finalized'], ['#cfdcee', 'Draft'], ['#f6dfa9', 'Reopened'], ['#e2e0da', 'No pool']] },
+  tips: { label: 'Tip Distribution', cell: x => ({ finalized: ['#cfe8d8', '✓'], draft: ['#cfdcee', 'D'], reopened: ['#f6dfa9', 'R'], none: ['#e2e0da', ''] })[x.tips], legend: [['#cfe8d8', 'Finalized'], ['#cfdcee', 'Draft'], ['#f6dfa9', 'Reopened'], ['#e2e0da', 'No pool']] },
   flags: { label: 'HR Flags', disc: true, cell: x => { const o = x.flags.filter(f => f.open).length, u = x.flags.some(f => f.urgent && f.open); return u ? ['#eea69f', '!'] : o ? ['#f6dfa9', o] : x.flags.length ? ['#e2e0da', x.flags.length] : ['#f3f2ee', '']; }, legend: [['#eea69f', 'Urgent open'], ['#f6dfa9', 'Open'], ['#e2e0da', 'Resolved']] },
 };
 function heatGrid(metricKeys, n) {
@@ -505,13 +513,13 @@ const LOC_COLORS = ['#2f5d50', '#c2410c', '#2563eb', '#a21caf', '#ca8a04'];
 function sections() {
   return [
     ['home', 'Home', '⌂'],
-    ['reports', 'Closing Reports', '▦'],
-    ['performance', 'Sales & Labor', '↗'],
-    ['tips', 'Tip Distribution', '$'],
-    ...(canDiscipline() ? [['flags', 'HR Flags', '⚑'], ['writeups', 'Write-ups', '✎']] : []),
-    ['people', 'Employees', '☺'],
-    ['locations', 'Locations', '⌖'],
-    ...(S.role === 'admin' ? [['settings', 'Settings', '⚙']] : []),
+    ['reports', 'Closing Reports', '▦', 'Operations'],
+    ['performance', 'Sales & Labor', '↗', 'Operations'],
+    ...(canDiscipline() ? [['flags', 'HR Flags', '⚑', 'People'], ['writeups', 'Write-ups', '✎', 'People']] : []),
+    ['people', 'Employees', '☺', 'People'],
+    ['tips', 'Tip Distribution', '$', 'Tips'],
+    ['locations', 'Locations', '⌖', 'Organization'],
+    ...(S.role === 'admin' ? [['settings', 'Settings', '⚙', 'Organization']] : []),
   ];
 }
 function badge(sec) {
@@ -555,59 +563,72 @@ function stacked(rows, keys, colors) {
 const dayLabels = idx => idx.map(i => fmtShort(dates[i]));
 const lastIdx = n => Array.from({ length: n }, (_, k) => Y - n + 1 + k);
 
-function kpiTile(label, val, deltaHtml, sparkVals, sparkColor) {
-  return `<div class="kpi"><div class="label">${label}</div><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><div><div class="val num">${val}</div><div class="delta">${deltaHtml}</div></div>${sparkVals ? spark(sparkVals, 84, 30, sparkColor) : ''}</div></div>`;
+function kpiTile(label, val, deltaHtml, sparkVals, sparkColor, go) {
+  return `<div class="kpi ${go ? 'go' : ''}" ${go ? `onclick="${go}"` : ''}><div class="label">${label}</div><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><div><div class="val num">${val}</div><div class="delta">${deltaHtml}</div></div>${sparkVals ? spark(sparkVals, 84, 30, sparkColor || 'var(--accent)') : ''}</div></div>`;
 }
-function homeAttention() {
+// Ranked exceptions, one line each, linking straight to the record (research: Needs attention is the largest Home block)
+function homeAttention(max) {
   const items = attentionItems().filter(x => x.group !== 'Timesheets unapproved (yesterday)' && x.group !== 'Open HR Flags');
-  const target = { 'Urgent HR Flags': 'flags', 'Overdue Closing Reports': 'reports', 'Labor over target (7 days)': 'performance', 'Write-ups awaiting HR': 'writeups', 'Tip Distributions not finalized': 'tips' };
+  const go = { 'Urgent HR Flags': 'flags', 'Overdue Closing Reports': 'reports', 'Labor over target (7 days)': 'performance', 'Write-ups awaiting HR': 'writeups', 'Tip Distributions not finalized': 'tips' };
+  const tag = { 'Urgent HR Flags': 'HR Flag', 'Overdue Closing Reports': 'Closing Report', 'Labor over target (7 days)': 'Labor', 'Write-ups awaiting HR': 'Write-up', 'Tip Distributions not finalized': 'Tips' };
   const prio = S.role === 'hr' ? ['Urgent HR Flags', 'Write-ups awaiting HR'] : ['Urgent HR Flags', 'Overdue Closing Reports', 'Labor over target (7 days)'];
   items.sort((a, b) => b.sev - a.sev || (prio.indexOf(a.group) + 1 || 99) - (prio.indexOf(b.group) + 1 || 99));
-  const ts = LOCS.reduce((s, L) => s + data[L.id][Y].unapproved, 0);
-  return `<div class="panel"><div style="display:flex;justify-content:space-between;align-items:baseline"><h2>Needs attention</h2><span class="muted" style="font-size:12px">${items.length} items</span></div>
-    ${items.slice(0, 6).map(x => `<div class="item" onclick="set({section:'${target[x.group]}', loc:'${x.loc}', day:${x.i == null ? 'null' : x.i}})"><span class="pill ${x.sev === 3 ? 'p-bad' : 'p-warn'}">${x.sev === 3 ? '!' : '•'}</span><div style="flex:1"><div class="t">${x.title}</div><div class="s">${x.group} · ${x.sub}</div></div><span class="muted">›</span></div>`).join('')}
-    ${items.length > 6 ? `<p class="muted" style="font-size:12px;margin:6px 0 0">+ ${items.length - 6} more in their sections</p>` : ''}
-    <p class="muted" style="font-size:12px;margin:10px 0 0">${ts} timesheet entries unapproved for yesterday across ${LOCS.length} Locations.</p></div>`;
+  return `<div class="panel" style="height:100%"><div style="display:flex;justify-content:space-between;align-items:baseline"><h2>Needs attention</h2><span class="muted" style="font-size:12px">${items.length} items, most urgent first</span></div>
+    ${items.slice(0, max).map(x => `<div class="row1" onclick="set({section:'${go[x.group]}', loc:'${x.loc}', day:${x.i == null || x.group.startsWith('Labor') ? 'null' : x.i}})"><span class="pill ${x.sev === 3 ? 'p-bad' : 'p-warn'}" style="width:112px;text-align:center">${tag[x.group]}</span><b>${x.title}</b><span class="muted ell">${x.sub}</span><span class="muted">›</span></div>`).join('')}
+    ${items.length > max ? `<p class="muted" style="font-size:12px;margin:8px 0 0">+ ${items.length - max} more in their sections</p>` : ''}</div>`;
 }
 function greeting() {
   const h = new Date().getHours(), P = PERSONAS[S.role];
   const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-  return `<div style="margin-bottom:18px"><h1 style="font-size:24px">${part}, ${P.name.split(' ')[0]}</h1><div class="muted">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · ${ORG}, ${LOCS.length} Locations · yesterday's Business Day closes at 10:00</div></div>`;
+  return `<div style="margin-bottom:16px"><h1 style="font-size:24px">${part}, ${P.name.split(' ')[0]}</h1><div class="muted">Yesterday, ${fmtDay(dates[Y])}, across ${LOCS.length} Locations · compared with the same weekday last week</div></div>`;
 }
 function Home() {
-  const i28 = lastIdx(28), i7 = lastIdx(7);
+  const i14 = lastIdx(14), p14 = i14.map(i => i - 7);
   const orgDay = i => LOCS.reduce((s, L) => s + data[L.id][i].sales, 0);
-  const orgLab = i => { const s = LOCS.reduce((a, L) => a + data[L.id][i].sales, 0), c = LOCS.reduce((a, L) => a + data[L.id][i].laborCost, 0); return c / s * 100; };
-  const y = orgAgg(1), lw = orgAgg(1, 1), w7 = orgAgg(7), p7 = orgAgg(7, 1);
-  const flagsByCat = FLAG_CATS.map(c => ({ label: c.replace(' or discrimination complaint', ''), val: LOCS.reduce((s, L) => s + data[L.id].slice(-28).flatMap(x => x.flags).filter(f => f.cat === c).length, 0) })).filter(r => r.val).sort((a, b) => b.val - a.val);
-  const weekly = Array.from({ length: 13 }, (_, w) => LOCS.reduce((s, L) => s + data[L.id].slice(w * 7, w * 7 + 7).reduce((a, x) => a + x.flags.length, 0), 0));
-  const kpisOps = `<div class="kpis">
-      ${kpiTile('Sales yesterday', $(y.sales), delta(y.sales, lw.sales) + ' vs same weekday', i28.map(orgDay))}
-      ${kpiTile('Sales, last 7 days', $(w7.sales), delta(w7.sales, p7.sales) + ' vs prior 7', null)}
-      ${kpiTile('Labor %, last 7 days', pct(w7.laborPct), delta(w7.laborPct, p7.laborPct, { invert: true, pts: true }) + ` · target ${LABOR_TARGET}%`, i28.map(orgLab), 'var(--warn)')}
-      ${kpiTile('Closing Reports on time', Math.round(w7.onTime) + '%', `<span class="muted">${w7.overdue} overdue · ${w7.late} late</span>`, null)}
-    </div>`;
-  const kpisHr = `<div class="kpis">
-      ${kpiTile('Open HR Flags', orgOpenNow(), `<span class="${orgUrgentNow() ? 'down' : 'muted'}">${orgUrgentNow()} urgent</span>`, weekly, 'var(--bad)')}
-      ${kpiTile('Write-ups awaiting HR', LOCS.reduce((s, L) => s + data[L.id].flatMap(x => x.writeups).filter(w => w.state === 'Awaiting HR approval').length, 0), '<span class="muted">approval toggle on</span>', null)}
-      ${kpiTile('Write-ups, last 28 days', orgAgg(28).wu, delta(orgAgg(28).wu, orgAgg(28, 1).wu, { invert: true }), null)}
-      ${kpiTile('Closing Reports on time', Math.round(w7.onTime) + '%', `<span class="muted">${w7.overdue} overdue</span>`, null)}
-    </div>`;
-  const salesChart = `<div class="panel"><div style="display:flex;justify-content:space-between"><h2>Daily sales by Location</h2><a onclick="set({section:'performance'})">Sales & Labor ›</a></div>${lineChart(LOCS.map((L, k) => ({ name: L.name, color: LOC_COLORS[k], vals: i28.map(i => data[L.id][i].sales) })), dayLabels(i28), { h: 210 })}</div>`;
-  const laborChart = `<div class="panel"><div style="display:flex;justify-content:space-between"><h2>Labor %, last 7 days</h2><a onclick="set({section:'performance'})">Details ›</a></div>${hbars(LOCS.map(L => { const a = agg(slice(L.id, 7)); return { label: L.name, val: a.laborPct, color: a.laborPct > LABOR_TARGET + 3 ? 'var(--bad)' : a.laborPct > LABOR_TARGET ? 'var(--warn)' : 'var(--accent)' }; }), { fmt: pct, target: LABOR_TARGET, max: 40 })}<p class="muted" style="font-size:12px;margin:8px 0 0">Dashed line: ${LABOR_TARGET}% target</p></div>`;
-  const flagsChart = `<div class="panel"><div style="display:flex;justify-content:space-between"><h2>HR Flags by category, 28 days</h2><a onclick="set({section:'flags'})">HR Flags ›</a></div>${hbars(flagsByCat, { fmt: v => v })}</div>`;
-  const flagsTrend = `<div class="panel"><h2>HR Flags per week, 13 weeks</h2>${lineChart([{ name: 'HR Flags raised', color: '#b3261e', vals: weekly }], weekly.map((_, w) => 'W' + (w + 1)), { h: 190, fmt: v => Math.round(v) })}</div>`;
-  const reportsMini = `<div class="panel"><div style="display:flex;justify-content:space-between"><h2>Closing Reports, last 14 Business Days</h2><a onclick="set({section:'reports'})">Closing Reports ›</a></div>${heatGrid(['report'], 14)}</div>`;
-  if (S.role === 'hr') return `${greeting()}${kpisHr}<div class="home-grid"><div class="stack">${homeAttention()}</div><div class="stack">${flagsChart}${flagsTrend}</div></div><div style="margin-top:16px">${reportsMini}</div>`;
-  return `${greeting()}${kpisOps}<div class="home-grid"><div class="stack">${homeAttention()}</div><div class="stack">${salesChart}${laborChart}</div></div><div style="margin-top:16px">${reportsMini}</div>`;
+  const orgLab = i => LOCS.reduce((a, L) => a + data[L.id][i].laborCost, 0) / orgDay(i) * 100;
+  const y = orgAgg(1), lw = orgAgg(1, 1);
+  const inY = LOCS.filter(L => ['submitted', 'late'].includes(data[L.id][Y].report)).length;
+  const overdue = LOCS.reduce((s, L) => s + data[L.id].filter(x => x.report === 'overdue').length, 0);
+  const reportsCard = kpiTile('Closing Reports in', `${inY} of ${LOCS.length}`, `<span class="muted">due 10:00</span>${overdue ? ` · <span class="down">${overdue} overdue earlier</span>` : ''}`, null, null, "set({section:'reports'})");
+  const salesCard = kpiTile('Net sales', $(y.sales), delta(y.sales, lw.sales), i14.map(orgDay), null, "set({section:'performance'})");
+  const laborCard = kpiTile('Labor % of sales', pct(y.laborPct), delta(y.laborPct, lw.laborPct, { invert: true, pts: true }) + ` · target ${LABOR_TARGET}%`, i14.map(orgLab), 'var(--warn)', "set({section:'performance'})");
+  const weeklyOpen = Array.from({ length: 13 }, (_, w) => LOCS.reduce((s, L) => s + data[L.id].slice(w * 7, w * 7 + 7).reduce((a, x) => a + x.flags.length, 0), 0));
+  const flagsCard = kpiTile('Open HR Flags', orgOpenNow(), `<span class="${orgUrgentNow() ? 'down' : 'muted'}">${orgUrgentNow()} urgent</span>`, weeklyOpen, 'var(--bad)', "set({section:'flags'})");
+  const tipsOpen = LOCS.reduce((s, L) => s + data[L.id].slice(0, Y).filter(x => x.tips === 'draft' || x.tips === 'reopened').length, 0);
+  const tipsCard = kpiTile('Tip Distributions not final', tipsOpen, '<span class="muted">before Pay Period closes Oct 18</span>', null, null, "set({section:'tips'})");
+  const wuAll = LOCS.flatMap(L => data[L.id].flatMap(x => x.writeups));
+  const salesChart = `<div class="panel"><div class="ph"><h2>Net sales, last 14 Business Days</h2><a onclick="set({section:'performance'})">Sales & Labor ›</a></div>${lineChart([{ name: 'This period', color: 'var(--accent)', vals: i14.map(orgDay) }, { name: 'Week before', color: '#a8a69e', vals: p14.map(orgDay) }], dayLabels(i14), { h: 170, dashed: [1] })}</div>`;
+  const laborRows = LOCS.map(L => { const a = agg(slice(L.id, 7)); return { label: L.name, val: a.laborPct, color: a.laborPct > LABOR_TARGET + 3 ? 'var(--bad)' : a.laborPct > LABOR_TARGET ? 'var(--warn)' : 'var(--accent)' }; }).sort((a, b) => b.val - a.val);
+  const laborChart = `<div class="panel"><div class="ph"><h2>Labor % by Location, last 7 days</h2><a onclick="set({section:'performance'})">Details ›</a></div>${hbars(laborRows, { fmt: pct, target: LABOR_TARGET, max: 40 })}</div>`;
+  if (S.role === 'hr') {
+    const byLoc = LOCS.map(L => ({ label: L.name, val: openNow(L.id), color: urgentNow(L.id) ? 'var(--bad)' : 'var(--accent)' })).sort((a, b) => b.val - a.val);
+    const weeks = Array.from({ length: 13 }, (_, w) => w);
+    const opened = weeks.map(w => LOCS.reduce((s, L) => s + data[L.id].slice(w * 7, w * 7 + 7).reduce((a, x) => a + x.flags.length, 0), 0));
+    const resolved = weeks.map(w => LOCS.reduce((s, L) => s + data[L.id].slice(w * 7, w * 7 + 7).reduce((a, x) => a + x.flags.filter(f => !f.open).length, 0), 0));
+    return `${greeting()}<div class="kpis kpi4">${flagsCard}
+      ${kpiTile('Write-ups awaiting HR approval', wuAll.filter(w => w.state === 'Awaiting HR approval').length, '<span class="muted">approval toggle on</span>', null, null, "set({section:'writeups'})")}
+      ${kpiTile('Write-ups ready to deliver', wuAll.filter(w => w.state === 'Ready to deliver').length, '<span class="muted">state-aware overdue</span>', null, null, "set({section:'writeups'})")}
+      ${reportsCard}</div>
+      <div class="home-grid"><div>${homeAttention(7)}</div><div class="stack">
+        <div class="panel"><div class="ph"><h2>HR Flags opened vs resolved, by week</h2><a onclick="set({section:'flags'})">HR Flags ›</a></div>${lineChart([{ name: 'Opened', color: '#b3261e', vals: opened }, { name: 'Resolved', color: '#2f5d50', vals: resolved }], weeks.map(w => 'W' + (w + 1)), { h: 150, fmt: v => Math.round(v) })}</div>
+        <div class="panel"><div class="ph"><h2>Open HR Flags by Location</h2></div>${hbars(byLoc, { fmt: v => v })}</div></div></div>`;
+  }
+  return `${greeting()}<div class="kpis kpi4">${salesCard}${laborCard}${reportsCard}${canDiscipline() ? flagsCard : tipsCard}</div>
+    <div class="home-grid"><div>${homeAttention(7)}</div><div class="stack">${salesChart}${laborChart}</div></div>`;
 }
 function sectionHead(title, sub, right = '') { return `<div class="controls"><div><h1>${title}</h1>${sub ? `<div class="muted" style="font-size:13px">${sub}</div>` : ''}</div><div class="spacer"></div>${right}</div>`; }
 function Reports() {
   const late = LOCS.flatMap(L => data[L.id].slice(-28).filter(x => x.report === 'overdue' || x.report === 'late').map(x => ({ L, x }))).sort((a, b) => b.x.i - a.x.i);
   return `${sectionHead('Closing Reports', 'One per Location per Business Day. Deadline 10:00 the next morning.', rangeSeg())}
-    <div class="panel" style="margin-bottom:16px">${heatGrid(['report', 'sales', 'labor'], Math.max(14, Math.min(RANGES[S.range].n, 42)))}</div>
+    <div class="panel" style="margin-bottom:16px">${heatGrid(['report'], Math.max(14, Math.min(RANGES[S.range].n, 42)))}</div>
     <div class="grid2"><div class="panel"><h2>Overdue and late, last 28 days</h2><table>${late.map(({ L, x }) => `<tr class="click" onclick="set({loc:'${L.id}',day:${x.i}})"><td>${L.name}</td><td>${fmtDay(x.d)}</td><td>${pill(REPORT_PILL, x.report)}</td></tr>`).join('') || '<tr><td class="muted">None</td></tr>'}</table></div>
-    <div class="panel"><h2>On-time rate by Location, 28 days</h2>${hbars(LOCS.map(L => ({ label: L.name, val: agg(slice(L.id, 28)).onTime, color: agg(slice(L.id, 28)).overdue ? 'var(--bad)' : 'var(--accent)' })), { fmt: v => Math.round(v) + '%', max: 100 })}</div></div>`;
+    <div class="panel"><h2>On-time rate by Location, 28 days</h2>${hbars(LOCS.map(L => { const a = agg(slice(L.id, 28)); return { label: L.name, val: a.onTime, color: a.overdue ? 'var(--bad)' : 'var(--accent)' }; }).sort((a, b) => a.val - b.val), { fmt: v => Math.round(v) + '%', max: 100 })}</div></div>`;
+}
+function divBars(rows) {
+  const mx = Math.max(...rows.map(r => Math.abs(r.val)), 1) * 1.15;
+  return rows.map(r => `<div style="display:flex;align-items:center;gap:10px;margin:7px 0"><span style="width:110px;font-size:13px">${r.label}</span>
+    <div style="flex:1;display:flex;height:18px"><div style="flex:1;display:flex;justify-content:flex-end">${r.val < 0 ? `<span style="width:${-r.val / mx * 100}%;background:var(--bad);border-radius:4px 0 0 4px"></span>` : ''}</div><div style="width:1px;background:var(--ink)"></div><div style="flex:1">${r.val > 0 ? `<span style="display:block;height:100%;width:${r.val / mx * 100}%;background:var(--good);border-radius:0 4px 4px 0"></span>` : ''}</div></div>
+    <span class="num ${r.val < 0 ? 'down' : 'up'}" style="width:56px;text-align:right;font-size:13px">${r.val > 0 ? '+' : ''}${r.val.toFixed(1)}%</span></div>`).join('');
 }
 function Performance() {
   const n = RANGES[S.range].n === 1 ? 14 : RANGES[S.range].n, idx = lastIdx(n), pidx = idx.map(i => i - n).filter(i => i >= 0);
@@ -624,49 +645,70 @@ function Performance() {
       ${kpiTile('Overtime hours', a.ot, delta(a.ot, p.ot, { invert: true }), null)}
     </div>
     <div class="grid2" style="margin-bottom:16px">
-      <div class="panel"><h2>Organization sales vs prior period</h2>${lineChart([{ name: 'This period', color: 'var(--accent)', vals: idx.map(orgDay) }, ...(pidx.length === idx.length ? [{ name: 'Prior period', color: '#9a9890', vals: pidx.map(orgDay) }] : [])], dayLabels(idx), { h: 210, dashed: [1] })}</div>
-      <div class="panel"><h2>Labor % by Location, daily</h2>${lineChart(LOCS.map((L, k) => ({ name: L.name, color: LOC_COLORS[k], vals: idx.map(i => data[L.id][i].laborPct), width: 1.6 })), dayLabels(idx), { h: 210, fmt: v => Math.round(v) + '%', target: LABOR_TARGET })}</div>
+      <div class="panel"><h2>Net sales vs prior period</h2>${lineChart([{ name: 'This period', color: 'var(--accent)', vals: idx.map(orgDay) }, ...(pidx.length === idx.length ? [{ name: 'Prior period', color: '#a8a69e', vals: pidx.map(orgDay) }] : [])], dayLabels(idx), { h: 200, dashed: [1] })}</div>
+      <div class="panel"><h2>Sales change vs prior period, by Location</h2>${divBars(rows.map(({ L, a, p }) => ({ label: L.name, val: (a.sales - p.sales) / p.sales * 100 })).sort((x, y) => y.val - x.val))}</div>
     </div>
+    <div class="panel" style="margin-bottom:16px"><div class="ph"><h2>Labor % per Location per Business Day</h2></div>${heatGrid(['labor'], Math.max(14, Math.min(n, 42)))}</div>
     <div class="grid2" style="margin-bottom:16px">
       <div class="panel"><h2>Sales mix by daypart</h2>${stacked(LOCS.map(L => ({ label: L.name, parts: slice(L.id, n).reduce((s, x) => { for (const k in x.dayparts) s[k] = (s[k] || 0) + x.dayparts[k]; return s; }, {}) })), ['Breakfast', 'Lunch', 'Afternoon'], ['#2f5d50', '#7fa89a', '#cfe0d8'])}</div>
       <div class="panel"><h2>Sales mix by category</h2>${stacked(LOCS.map(L => ({ label: L.name, parts: slice(L.id, n).reduce((s, x) => { for (const k in x.categories) s[k] = (s[k] || 0) + x.categories[k]; return s; }, {}) })), ['Coffee', 'Bakery', 'Savory', 'Catering'], ['#6b4f3a', '#c08a4e', '#9db8ae', '#2563eb'])}</div>
     </div>
-    <div class="panel" style="padding:0"><table><tr><th style="padding-left:16px">Location</th><th class="r">Net sales</th><th class="r">vs prior</th><th class="r">Labor %</th><th class="r">SPLH</th><th class="r">OT h</th></tr>
-      ${rows.map(({ L, a, p }) => `<tr class="click" onclick="set({loc:'${L.id}',day:null})"><td style="padding-left:16px">${locName(L)}</td><td class="r num">${$(a.sales)}</td><td class="r num">${delta(a.sales, p.sales)}</td><td class="r"><span class="pill ${laborCls(a.laborPct)}">${pct(a.laborPct)}</span></td><td class="r num">$${Math.round(a.sales / a.hours)}</td><td class="r num">${a.ot}</td></tr>`).join('')}</table></div>`;
+    <div class="panel" style="padding:0"><table><tr><th style="padding-left:16px">Location</th><th class="r">Net sales</th><th class="r">vs prior</th><th>28-day trend</th><th class="r">Labor %</th><th class="r">SPLH</th><th class="r">OT h</th></tr>
+      ${rows.map(({ L, a, p }) => `<tr class="click" onclick="set({section:'locations',loc:'${L.id}',day:null})"><td style="padding-left:16px">${locName(L)}</td><td class="r num">${$(a.sales)}</td><td class="r num">${delta(a.sales, p.sales)}</td><td>${spark(slice(L.id, 28).map(x => x.sales))}</td><td class="r"><span class="pill ${laborCls(a.laborPct)}">${pct(a.laborPct)}</span></td><td class="r num">$${Math.round(a.sales / a.hours)}</td><td class="r num">${a.ot}</td></tr>`).join('')}</table></div>`;
 }
 function Tips() {
-  return `${sectionHead('Tip Distribution', 'One Tip Pool per Location per Business Day; finalized by GM or Manager, exported per Pay Period.', rangeSeg())}
+  const i14 = lastIdx(14);
+  return `${sectionHead('Tip Distribution', 'One Tip Pool per Location per Business Day; finalized by GM or Manager, exported per Pay Period.')}
     <div class="panel" style="margin-bottom:16px">${heatGrid(['tips'], 14)}</div>
-    <div class="grid2"><div class="panel"><h2>Tip Pool per guest, last 28 days</h2>${hbars(LOCS.map(L => { const a = agg(slice(L.id, 28)); return { label: L.name, val: (a.card + a.jar) / a.guests }; }), { fmt: v => '$' + v.toFixed(2) })}</div>
-    <div class="panel"><h2>Current Pay Period</h2><p>Oct 5 - Oct 18 · export opens Oct 19</p>${hbars(LOCS.map(L => { const d = data[L.id].slice(-12); return { label: L.name, val: d.filter(x => x.tips === 'finalized').length / d.filter(x => x.tips !== 'none').length * 100, color: d.some(x => x.tips === 'reopened') ? 'var(--warn)' : 'var(--accent)' }; }), { fmt: v => Math.round(v) + '% final', max: 100 })}</div></div>`;
+    <div class="grid2"><div class="panel"><h2>Tip Pool per Business Day, all Locations</h2>${lineChart([{ name: 'Card + jar', color: 'var(--accent)', vals: i14.map(i => LOCS.reduce((s, L) => s + data[L.id][i].card + data[L.id][i].jar, 0)) }], dayLabels(i14), { h: 180 })}</div>
+    <div class="panel"><h2>Current Pay Period, Oct 5 - Oct 18</h2>${hbars(LOCS.map(L => { const d = data[L.id].slice(-12); return { label: L.name, val: d.filter(x => x.tips === 'finalized').length / d.filter(x => x.tips !== 'none').length * 100, color: d.some(x => x.tips === 'reopened') ? 'var(--warn)' : 'var(--accent)' }; }).sort((a, b) => a.val - b.val), { fmt: v => Math.round(v) + '% final', max: 100 })}<p class="muted" style="font-size:12px">Export opens Oct 19.</p></div></div>`;
 }
 function Flags() {
   const open = LOCS.flatMap(L => data[L.id].flatMap(x => x.flags.filter(f => f.open).map(f => ({ ...f, L, x })))).sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0) || a.x.i - b.x.i);
+  const weeks = Array.from({ length: 13 }, (_, w) => w);
+  const opened = weeks.map(w => LOCS.reduce((s, L) => s + data[L.id].slice(w * 7, w * 7 + 7).reduce((a, x) => a + x.flags.length, 0), 0));
+  const resolved = weeks.map(w => LOCS.reduce((s, L) => s + data[L.id].slice(w * 7, w * 7 + 7).reduce((a, x) => a + x.flags.filter(f => !f.open).length, 0), 0));
+  const byCat = FLAG_CATS.map(c => ({ label: c.replace(' or discrimination complaint', ''), val: LOCS.reduce((s, L) => s + data[L.id].slice(-28).flatMap(x => x.flags).filter(f => f.cat === c).length, 0) })).filter(r => r.val).sort((a, b) => b.val - a.val);
   return `${sectionHead('HR Flags', 'Open until HR resolves them. Workplace injuries pinned as urgent.')}
+    <div class="grid2" style="margin-bottom:16px"><div class="panel"><h2>Opened vs resolved, by week</h2>${lineChart([{ name: 'Opened', color: '#b3261e', vals: opened }, { name: 'Resolved', color: '#2f5d50', vals: resolved }], weeks.map(w => 'W' + (w + 1)), { h: 170, fmt: v => Math.round(v) })}</div>
+    <div class="panel"><h2>By category, last 28 days</h2>${hbars(byCat, { fmt: v => v })}</div></div>
     <div class="panel" style="padding:0"><table><tr><th style="padding-left:16px">Category</th><th>Employee</th><th>Location</th><th>Incident</th><th class="r">Age</th></tr>
     ${open.map(f => `<tr class="click" onclick="set({loc:'${f.L.id}',day:${f.x.i}})"><td style="padding-left:16px"><span class="pill ${f.urgent ? 'p-bad' : 'p-warn'}">${f.cat}</span></td><td>${f.who}</td><td>${f.L.name}</td><td>${fmtDay(f.x.d)}</td><td class="r num">${Y - f.x.i + 1}d</td></tr>`).join('')}</table></div>`;
 }
 function Writeups() {
   const all = LOCS.flatMap(L => data[L.id].flatMap(x => x.writeups.map(w => ({ ...w, L, x })))).sort((a, b) => b.x.i - a.x.i);
   const st = { 'Signed': 'p-good', 'Refused': 'p-none', 'Ready to deliver': 'p-info', 'Awaiting HR approval': 'p-warn' };
-  return `${sectionHead('Write-ups', 'Most recent first, last 13 weeks.')}
+  return `${sectionHead('Write-ups', 'Last 13 weeks, most recent first.')}
+    <div class="grid2" style="margin-bottom:16px"><div class="panel"><h2>By Write-up Level</h2>${hbars(WU_LEVELS.map(l => ({ label: l, val: all.filter(w => w.level === l).length })), { fmt: v => v })}</div>
+    <div class="panel"><h2>By Location</h2>${hbars(LOCS.map(L => ({ label: L.name, val: all.filter(w => w.L === L).length })).sort((a, b) => b.val - a.val), { fmt: v => v })}</div></div>
     <div class="panel" style="padding:0"><table><tr><th style="padding-left:16px">Employee</th><th>Level</th><th>Location</th><th>Date</th><th>State</th></tr>
     ${all.map(w => `<tr><td style="padding-left:16px">${w.who}</td><td>${w.level}</td><td>${w.L.name}</td><td>${fmtDay(w.x.d)}</td><td><span class="pill ${st[w.state]}">${w.state}</span></td></tr>`).join('')}</table></div>`;
 }
+// Locations: a directory, and each Location's own page (Organization > Location, breadcrumb back up)
+function Locations() {
+  if (S.loc) return `<div class="crumbs"><a onclick="set({loc:null,day:null})">${ORG}</a> › <b>${locOf(S.loc).name}</b></div>
+    <div class="controls"><h1>${locName(locOf(S.loc))}</h1><div class="spacer"></div>${rangeSeg()}</div>${locationView(S.loc, 'cDay')}`;
+  return `${sectionHead('Locations', `${LOCS.length} Locations`)}<div class="panel" style="padding:0"><table><tr><th style="padding-left:16px">Location</th><th>State</th><th class="r">Sales, 7 days</th><th>28-day trend</th><th class="r">Labor %</th><th>Closing Reports</th></tr>
+    ${LOCS.map(L => { const a = agg(slice(L.id, 7)); return `<tr class="click" onclick="set({loc:'${L.id}'})"><td style="padding-left:16px">${L.name} <span class="muted">${L.city}</span></td><td>${L.st}</td><td class="r num">${$(a.sales)}</td><td>${spark(slice(L.id, 28).map(x => x.sales))}</td><td class="r"><span class="pill ${laborCls(a.laborPct)}">${pct(a.laborPct)}</span></td><td>${a.overdue ? `<span class="pill p-bad">${a.overdue} overdue</span>` : '<span class="pill p-good">on time</span>'}</td></tr>`; }).join('')}</table></div>`;
+}
 const Stub = t => () => `${sectionHead(t)}<div class="panel muted">Not part of this prototype. Shown so the sidebar reads like the real product.</div>`;
 function VariantD() {
-  const SEC = { home: Home, reports: Reports, performance: Performance, tips: Tips, flags: Flags, writeups: Writeups, people: Stub('Employees'), locations: Stub('Locations'), settings: Stub('Settings') };
+  const SEC = { home: Home, reports: Reports, performance: Performance, tips: Tips, flags: Flags, writeups: Writeups, people: Stub('Employees'), locations: Locations, settings: Stub('Settings') };
   if (!sections().some(x => x[0] === S.section)) S.section = 'home';
+  // a Location without a Business Day is a page, not a drawer
+  if (S.loc && S.day == null && S.section !== 'locations') S.section = 'locations';
   const P = PERSONAS[S.role];
+  let lastGroup = null;
+  const nav = sections().map(([k, l, ic, g]) => { const head = g && g !== lastGroup ? `<div class="navg">${g}</div>` : ''; lastGroup = g; return `${head}<a class="nav ${S.section === k ? 'on' : ''}" onclick="set({section:'${k}',loc:null,day:null})"><span class="ic">${ic}</span>${l}${badge(k)}</a>`; }).join('');
   return `<div class="shell">
     <aside class="side">
       <div class="brand" style="padding:4px 10px 14px">Opsell<div class="muted" style="font-weight:400;font-size:12px">${ORG} <span class="demo-tag" style="font-size:10px">Demo</span></div></div>
-      <nav>${sections().map(([k, l, ic]) => `<a class="nav ${S.section === k ? 'on' : ''}" onclick="set({section:'${k}',loc:null,day:null})"><span class="ic">${ic}</span>${l}${badge(k)}</a>`).join('')}</nav>
+      <nav>${nav}</nav>
       <div class="spacer"></div>
       <div class="me"><div class="av">${P.name.split(' ').map(w => w[0]).join('')}</div><div><div style="font-weight:600;font-size:13px">${P.name}</div><div class="muted" style="font-size:12px">${P.title}</div></div></div>
     </aside>
     <main class="main">${SEC[S.section]()}</main>
-  </div>${drawer()}`;
+  </div>${S.day != null ? drawer() : ''}`;
 }
 
 // ---------- Render + switcher ----------
