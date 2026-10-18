@@ -12,6 +12,10 @@ _Avoid_: Tenant, company, restaurant, account
 A single physical store operated by an Organization.
 _Avoid_: Store, restaurant, branch, site
 
+**Terminated Organization**:
+An Organization whose contract has ended, kept read-only so its Org Admins can export it for a fixed window, after which all its data is purged.
+_Avoid_: Churned, cancelled, closed, deleted Organization
+
 ## People
 
 **Employee**:
@@ -87,3 +91,17 @@ _Avoid_: Tip rules, tip settings
 **Pay Period**:
 The Organization's recurring payroll window (weekly, biweekly or semimonthly) that groups Tip Distributions for export to payroll.
 _Avoid_: Pay cycle, payroll week
+
+## Retention
+
+**Retention Period**:
+How long Opsell keeps a kind of record before purging it, never shorter than Opsell's legal minimum for that kind of record, and lengthened only by the Organization.
+_Avoid_: TTL, expiry, archive period
+
+**Purge**:
+The permanent deletion of a record and its files once its Retention Period has ended and no Legal Hold applies; the only way a record ever leaves Opsell, unlike voiding or archiving, which keep it.
+_Avoid_: Delete, remove, expire
+
+**Legal Hold**:
+A hold on everything about one Employee, or on a whole Organization, that stops every Purge until it is released, placed when a lawsuit, charge or investigation is expected.
+_Avoid_: Freeze, lock, litigation flag
