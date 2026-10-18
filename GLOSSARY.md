@@ -87,3 +87,17 @@ _Avoid_: Tip rules, tip settings
 **Pay Period**:
 The Organization's recurring payroll window (weekly, biweekly or semimonthly) that groups Tip Distributions for export to payroll.
 _Avoid_: Pay cycle, payroll week
+
+## Oversight
+
+**Audit Log**:
+The append-only record of every change to an Organization's data, and of every Platform Staff read or export, naming who did it, when, and what changed from what.
+_Avoid_: Activity feed, history, change log
+
+**Support Access**:
+A time-boxed, read-only window an Org Admin grants Platform Staff into their Organization, excluding Write-ups, HR Flags and Rebuttals unless the Org Admin includes them.
+_Avoid_: Impersonation, admin access, login as
+
+**Break-glass Access**:
+Support Access that Platform Staff open without an Org Admin's grant when none can give it, with a stated reason and a second Platform Staff approval, never including Write-ups, HR Flags or Rebuttals.
+_Avoid_: Emergency override, god mode
