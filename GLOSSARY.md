@@ -49,8 +49,12 @@ A Location's operating day, ending at that Location's local cutoff rather than a
 _Avoid_: Calendar day, shift day, date
 
 **Closing Report**:
-The single record a Location submits for each Business Day, combining closing notes with sales and labor figures.
-_Avoid_: Closing notes, nightly report, sales report
+The single record a Location submits for each Business Day, combining Closing Notes with sales and labor figures.
+_Avoid_: Closing notes (for the whole report), nightly report, sales report
+
+**Closing Note**:
+One entry in a section of a Closing Report, written by exactly one person and always shown under that person's name.
+_Avoid_: Note entry, comment, remark, log entry
 
 **HR Flag**:
 A record about exactly one Employee that routes an HR-relevant event to HR, either confirmed by a Closing Report's author from its notes or raised directly by a GM or Manager, and open until HR resolves it.
