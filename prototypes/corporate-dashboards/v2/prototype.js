@@ -4,7 +4,8 @@
    Home follows the decided anatomy (and the design system's SampleHome) in every variant; the variants
    disagree on the drill model:
      A  Pages: module sections, a Location page, a Business Day page, breadcrumbs.
-     B  Scope: one Location switcher re-scopes Home and every section; a Business Day opens in a drawer.
+     B  Scope (chosen direction): a switcher scopes Home and every section; Locations in the sidebar open a
+        Location page with tabs (from A); a Business Day opens in a drawer.
      C  Board: Locations x Business Days on one canvas with a metric switcher; details open in a side pane.
    Switch with the bottom bar or the arrow keys; the variant rides in the URL hash (#A, #B, #C).
    Data is mock: the design system's demo figures for the last 14 Business Days, seeded history before. */
@@ -208,7 +209,7 @@
     const ops = [['reports', 'clipboard-check', 'Closing Reports']]; if (seesSales()) ops.push(['sales', 'chart-column', 'Sales & Labor']);
     const people = []; if (seesDiscipline()) people.push(['flags', 'flag', 'HR Flags'], ['writeups', 'file-pen-line', 'Write-ups']); people.push(['employees', 'users', 'Employees']);
     const tips = S.role === 'hr' ? [] : [['tips', 'hand-coins', 'Tip Distribution']];
-    const org = variant === 'A' ? [['locations', 'store', 'Locations']] : []; if (S.role === 'admin') org.push(['settings', 'settings', 'Settings']);
+    const org = variant !== 'C' ? [['locations', 'store', 'Locations']] : []; if (S.role === 'admin') org.push(['settings', 'settings', 'Settings']);
     const groups = [[null, [['home', 'house', 'Home']]]];
     if (variant === 'C') groups.push(['Operations', [['board', 'chart-column', 'Board']]]); else groups.push(['Operations', ops]);
     groups.push(['People', people]); if (tips.length) groups.push(['Payroll', tips]); if (org.length) groups.push(['Organization', org]);
@@ -310,7 +311,7 @@
   }
   function tipsBody(locs, onDay) {
     const idx = Array.from({ length: 14 }, (_, k) => LAST - 13 + k);
-    const statusGrid = `<div class="op-card" style="padding:var(--space-3) var(--space-4);display:grid;gap:var(--space-2);overflow-x:auto"><b class="h3">Tip Distribution by Location and Business Day</b><div style="display:grid;grid-template-columns:110px repeat(14, minmax(28px,1fr));gap:4px;align-items:center;font-size:11px;min-width:560px"><span></span>${idx.map(i => `<span class="tert" style="text-align:center">${dCol(i)[0]}<br><b style="color:var(--text-secondary)">${dCol(i)[1]}</b></span>`).join('')}${locs.map(l => `<span style="display:flex;gap:6px;align-items:center;font-size:13px">${glyphKey(l)}${LN(l)}</span>${idx.map(i => `<span style="display:grid;place-items:center;cursor:pointer" data-day="${i}" data-dl="${l}" data-go="{}">${O.cell('tipDistribution', D[l][i].tip, { size: 'sm', title: `${LN(l)} · ${dTitle(i)} · ${O.STATUS.tipDistribution[D[l][i].tip].label}` })}</span>`).join('')}`).join('')}</div></div>`;
+    const statusGrid = `<div class="op-card" style="padding:var(--space-3) var(--space-4);display:grid;gap:var(--space-2);overflow-x:auto"><b class="h3">${locs.length > 1 ? 'Tip Distribution by Location and Business Day' : 'Tip Distribution by Business Day'}</b><div style="display:grid;grid-template-columns:110px repeat(14, minmax(28px,1fr));gap:4px;align-items:center;font-size:11px;min-width:560px"><span></span>${idx.map(i => `<span class="tert" style="text-align:center">${dCol(i)[0]}<br><b style="color:var(--text-secondary)">${dCol(i)[1]}</b></span>`).join('')}${locs.map(l => `<span style="display:flex;gap:6px;align-items:center;font-size:13px">${glyphKey(l)}${LN(l)}</span>${idx.map(i => `<span style="display:grid;place-items:center;cursor:pointer" data-day="${i}" data-dl="${l}" data-go="{}">${O.cell('tipDistribution', D[l][i].tip, { size: 'sm', title: `${LN(l)} · ${dTitle(i)} · ${O.STATUS.tipDistribution[D[l][i].tip].label}` })}</span>`).join('')}`).join('')}</div></div>`;
     const tIdx = idxRange(), table = `<div class="op-table-wrap"><table class="op-table"><thead><tr><th>Location</th><th class="num">Card tips</th><th class="num">Cash jar</th><th class="num">Tip Pool</th><th class="num">Hours in pool</th><th class="num">Per hour</th><th>Open</th></tr></thead><tbody>${locs.map(l => { const a = agg([l], tIdx); const op = tIdx.filter(i => D[l][i].tip !== 'finalized' && D[l][i].tip !== 'noPool'); return `<tr><td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td><td class="num">${F.money(a.card)}</td><td class="num">${F.money(a.jar)}</td><td class="num" style="font-weight:500">${F.money(a.tips)}</td><td class="num">${F.count(a.hours * 0.62)}</td><td class="num">${F.money(a.tips / (a.hours * 0.62 || 1), { cents: true })}</td><td>${op.length ? op.map(i => O.chip('tipDistribution', D[l][i].tip, { size: 'sm', label: `${O.STATUS.tipDistribution[D[l][i].tip].label} · ${dCol(i)[1]}` })).join(' ') : '<span class="tert">—</span>'}</td></tr>`; }).join('')}</tbody></table></div>`;
     const one = locs.length === 1 ? chartCard(`Tip Pool per Business Day · ${LN(locs[0])}`, 'Hatched = Draft · amber = Reopened', el => O.charts.columns(el, { labels: idx.map(i => String(dCol(i)[1])), tipLabels: idx.map(dTitle), values: idx.map(i => D[locs[0]][i].closed ? null : D[locs[0]][i].card + D[locs[0]][i].jar), states: idx.map(i => ({ draft: 'pending', reopened: 'reopened', noPool: 'none' })[D[locs[0]][i].tip] || null), valueName: 'Tip Pool', average: true, onClick: i => onDay(locs[0], idx[i]) })) : '';
     return statusGrid + one + table + `<p class="section-note">Next payroll export: Pay Period Oct 5 – Oct 18. Opsell computes the split; payment runs through payroll.</p>`;
@@ -338,6 +339,25 @@
     return { header, figures, mix, topT, notesC };
   }
 
+  /* ───────────── Location page with tabs: shared by A (a day opens as a page) and B (a day opens in the drawer) ───────────── */
+  function locationPage(l, toDay, keys) {
+    const names = { overview: 'Overview', sales: 'Sales & Labor', reports: 'Closing Reports', people: 'HR Flags & Write-ups', tips: 'Tip Distribution' };
+    const tabs = keys.filter(k => (k !== 'sales' || seesSales()) && (k !== 'people' || seesDiscipline()) && (k !== 'tips' || S.role !== 'hr'));
+    const tab = tabs.includes(S.tab) ? S.tab : 'overview';
+    const crumb = crumbs([['Locations', { page: 'locations' }], [LN(l)]]);
+    const head = pageHead(LN(l), [O.loc(l).city, `GM ${STAFF[l][0]}`, rangeTitle()], rangeCtl(), `<span class="tert" style="display:flex;gap:6px;align-items:center;font-size:12px">${glyphKey(l)}Location</span>`) + `<div class="op-tabs" role="tablist">${tabs.map(k => `<button class="op-tab" role="tab" aria-selected="${tab === k}" ${go({ tab: k })}>${names[k]}</button>`).join('')}</div>`;
+    let body;
+    if (tab === 'overview') {
+      const hm = home([l], (ll, day) => toDay(l, day));
+      const strip = Array.from({ length: 14 }, (_, k) => LAST - 13 + k);
+      body = hm.body.replace('<div class="g-home">', `<div class="op-card" style="padding:var(--space-3) var(--space-4);display:grid;gap:var(--space-2)"><div style="display:flex;justify-content:space-between;align-items:baseline"><b class="h3">Business Days</b><span class="section-note">Click a day to open its Closing Report</span></div><div class="daystrip">${strip.map(i => { const d = D[l][i]; return `<a data-day="${i}" data-dl="${l}" data-go="{}">${dCol(i)[0]} ${dCol(i)[1]}${O.cell('closingReport', d.cr, { size: 'sm' })}<b>${d.closed ? '—' : F.money(d.sales, { compact: true })}</b><span class="${d.labor > target(l) + OVER ? 'bad' : ''}">${d.closed ? '' : F.pct(d.labor)}</span></a>`; }).join('')}</div></div><div class="g-home">`);
+    } else if (tab === 'sales') body = salesBody([l], null, toDay);
+    else if (tab === 'reports') body = reportsBody([l], null, toDay);
+    else if (tab === 'people') body = flagsBody([l]) + writeupsBody([l]);
+    else body = tipsBody([l], toDay);
+    return { crumb, head, body };
+  }
+
   /* ───────────── Variant A: module pages, Location page, Business Day page ───────────── */
   function VariantA() {
     const toLoc = (l, day) => set(day != null && l ? { page: 'day', loc: l, day } : l ? { page: 'location', loc: l, tab: 'overview' } : day != null ? { page: 'reports' } : {});
@@ -354,21 +374,7 @@
       case 'employees': crumb = crumbs([['Employees']]); head = pageHead('Employees', ['All Locations']); body = employeesBody(LOCS); break;
       case 'settings': crumb = crumbs([['Settings']]); head = pageHead('Settings', ['Organization']); body = settingsBody(); break;
       case 'locations': crumb = crumbs([['Locations']]); head = pageHead('Locations', [rangeTitle(), `${LOCS.length} Locations`], rangeCtl()); body = locationsBody(); break;
-      case 'location': {
-        const l = S.loc;
-        crumb = crumbs([['Locations', { page: 'locations' }], [LN(l)]]);
-        const tabs = [['overview', 'Overview'], ['sales', 'Sales & Labor'], ['reports', 'Closing Reports'], ...(seesDiscipline() ? [['people', 'HR Flags & Write-ups']] : []), ...(S.role !== 'hr' ? [['tips', 'Tip Distribution']] : [])].filter(t => t[0] !== 'sales' || seesSales());
-        head = pageHead(LN(l), [O.loc(l).city, `GM ${STAFF[l][0]}`, rangeTitle()], rangeCtl(), `<span class="tert" style="display:flex;gap:6px;align-items:center;font-size:12px">${glyphKey(l)}Location</span>`) + `<div class="op-tabs" role="tablist">${tabs.map(([k, t]) => `<button class="op-tab" role="tab" aria-selected="${S.tab === k}" ${go({ tab: k })}>${t}</button>`).join('')}</div>`;
-        if (S.tab === 'overview') {
-          const hm = home([l], (ll, day) => toDay(l, day));
-          const strip = Array.from({ length: 14 }, (_, k) => LAST - 13 + k);
-          body = hm.body.replace('<div class="g-home">', `<div class="op-card" style="padding:var(--space-3) var(--space-4);display:grid;gap:var(--space-2)"><div style="display:flex;justify-content:space-between;align-items:baseline"><b class="h3">Business Days</b><span class="section-note">Click a day to open its Closing Report</span></div><div class="daystrip">${strip.map(i => { const d = D[l][i]; return `<a ${go({ page: 'day', loc: l, day: i })}>${dCol(i)[0]} ${dCol(i)[1]}${O.cell('closingReport', d.cr, { size: 'sm' })}<b>${d.closed ? '—' : F.money(d.sales, { compact: true })}</b><span class="${d.labor > target(l) + OVER ? 'bad' : ''}">${d.closed ? '' : F.pct(d.labor)}</span></a>`; }).join('')}</div></div><div class="g-home">`);
-        } else if (S.tab === 'sales') body = salesBody([l], null, toDay);
-        else if (S.tab === 'reports') body = reportsBody([l], null, toDay);
-        else if (S.tab === 'people') body = flagsBody([l]) + writeupsBody([l]);
-        else body = tipsBody([l], toDay);
-        break;
-      }
+      case 'location': ({ crumb, head, body } = locationPage(S.loc, toDay, ['overview', 'sales', 'reports', 'people', 'tips'])); break;
       case 'day': {
         const l = S.loc, i = S.day, dd = dayBody(l, i);
         crumb = crumbs([['Locations', { page: 'locations' }], [LN(l), { page: 'location', loc: l, tab: 'overview' }], [dTitle(i)]]);
@@ -382,36 +388,43 @@
     return `<div class="app${S.navOpen ? ' nav-open' : ''}">${nav(navKey, navItems('A'))}<div class="col">${topbar(crumb)}<div class="scroll"><main class="page${S.page === 'home' ? ' page--home' : ''}">${head}${body}</main></div></div></div>`;
   }
 
-  /* ───────────── Variant B: one scope switcher, drawer for the Business Day ───────────── */
+  /* ───────────── Variant B: one scope switcher, Location pages with tabs, drawer for the Business Day ───────────── */
   function VariantB() {
+    const onLocPage = S.page === 'location';
     const locs = scopeLocs(), one = locs.length === 1;
     const toDay = (l, day) => { if (day == null) return; if (!l && one) l = locs[0]; if (!l) { set({ page: 'reports' }); return; } set({ drawer: { loc: l, day } }); };
-    const toScope = (l, day) => set(day != null && l ? { drawer: { loc: l, day } } : l ? { scope: l } : day != null ? { page: 'reports' } : {});
-    const scopeName = one ? LN(locs[0]) : 'All Locations';
-    const scopeBtn = `<div class="scope-wrap"><button class="scope-btn" data-act="scope" aria-expanded="${S.scopeOpen}"><span class="k">Scope</span>${one ? glyphKey(locs[0]) : I('store', 16)}${scopeName}${I('chevron-down', 16)}</button>${S.scopeOpen ? `<div class="op-menu" role="menu"><div class="op-menu-label">Organization</div><button class="op-menu-item" ${go({ scope: 'all', scopeOpen: false })}>${I('store', 16)}All Locations${S.scope === 'all' ? I('check', 16) : ''}</button><div class="op-menu-sep"></div><div class="op-menu-label">Location</div>${LOCS.map(l => `<button class="op-menu-item" ${go({ scope: l, scopeOpen: false })}>${glyphKey(l)}${LN(l)}<span class="tert" style="margin-left:auto;font-size:12px">${O.loc(l).city.split(',')[1]}</span>${S.scope === l ? I('check', 16) : ''}</button>`).join('')}</div>` : ''}</div>`;
-    const titles = { home: 'Home', sales: 'Sales & Labor', reports: 'Closing Reports', flags: 'HR Flags', writeups: 'Write-ups', tips: 'Tip Distribution', employees: 'Employees', settings: 'Settings' };
-    const crumb = crumbs(one ? [[titles[S.page], { scope: 'all' }], [LN(locs[0])]] : [[titles[S.page]]]);
+    const toLoc = (l, day) => set(day != null && l ? { drawer: { loc: l, day } } : l ? { page: 'location', loc: l, tab: 'overview' } : day != null ? { page: 'reports' } : {});
+    const toLocTab = tab => l => set({ page: 'location', loc: l, tab });
+    // On a Location page the switcher swaps the Location; everywhere else it scopes the page.
+    const current = onLocPage ? S.loc : S.scope;
+    const pick = l => onLocPage ? (l === 'all' ? { page: 'locations', scopeOpen: false } : { loc: l, scopeOpen: false }) : { scope: l, scopeOpen: false };
+    const scopeName = current === 'all' ? 'All Locations' : LN(current);
+    const scopeBtn = `<div class="scope-wrap"><button class="scope-btn" data-act="scope" aria-expanded="${S.scopeOpen}"><span class="k">${onLocPage ? 'Location' : 'Scope'}</span>${current === 'all' ? I('store', 16) : glyphKey(current)}${scopeName}${I('chevron-down', 16)}</button>${S.scopeOpen ? `<div class="op-menu" role="menu"><div class="op-menu-label">Organization</div><button class="op-menu-item" ${go(pick('all'))}>${I('store', 16)}All Locations${current === 'all' ? I('check', 16) : ''}</button><div class="op-menu-sep"></div><div class="op-menu-label">Location</div>${LOCS.map(l => `<button class="op-menu-item" ${go(pick(l))}>${glyphKey(l)}${LN(l)}<span class="tert" style="margin-left:auto;font-size:12px">${O.loc(l).city.split(',')[1]}</span>${current === l ? I('check', 16) : ''}</button>`).join('')}</div>` : ''}</div>`;
+    const titles = { home: 'Home', sales: 'Sales & Labor', reports: 'Closing Reports', flags: 'HR Flags', writeups: 'Write-ups', tips: 'Tip Distribution', employees: 'Employees', settings: 'Settings', locations: 'Locations' };
+    let crumb = onLocPage ? '' : crumbs(one ? [[titles[S.page], { scope: 'all' }], [LN(locs[0])]] : [[titles[S.page]]]);
     let head, body;
     const scopeLine = [rangeTitle(), scopeName];
-    if (S.page === 'home') { const hm = home(locs, toScope); head = hm.head; body = hm.body;
+    if (onLocPage) ({ crumb, head, body } = locationPage(S.loc, toDay, ['overview', 'sales', 'reports', 'tips']));
+    else if (S.page === 'locations') { crumb = crumbs([['Locations']]); head = pageHead('Locations', [rangeTitle(), `${LOCS.length} Locations`], rangeCtl()); body = locationsBody(); }
+    else if (S.page === 'home') { const hm = home(locs, toLoc); head = hm.head; body = hm.body;
       if (!one) body = body.replace('<div class="g-home">', `${scorecard()}<div class="g-home">`);
-    } else if (S.page === 'sales') { head = pageHead('Sales & Labor', scopeLine, rangeCtl()); body = salesBody(locs, one ? null : l => set({ scope: l }), toDay); }
-    else if (S.page === 'reports') { head = pageHead('Closing Reports', [`Last ${S.range === '28d' || S.range === '13w' ? 28 : 14} Business Days`, scopeName], `<div class="op-seg">${[['14 days', '7d'], ['28 days', '28d']].map(([t, k]) => `<button aria-pressed="${(S.range === '28d' || S.range === '13w') === (k === '28d')}" ${go({ range: k })}>${t}</button>`).join('')}</div>`); body = reportsBody(locs, one ? null : l => set({ scope: l }), toDay) + (one ? dayTable(locs[0], Array.from({ length: 14 }, (_, k) => LAST - k), toDay) : ''); }
+    } else if (S.page === 'sales') { head = pageHead('Sales & Labor', scopeLine, rangeCtl()); body = salesBody(locs, one ? null : toLocTab('sales'), toDay); }
+    else if (S.page === 'reports') { head = pageHead('Closing Reports', [`Last ${S.range === '28d' || S.range === '13w' ? 28 : 14} Business Days`, scopeName], `<div class="op-seg">${[['14 days', '7d'], ['28 days', '28d']].map(([t, k]) => `<button aria-pressed="${(S.range === '28d' || S.range === '13w') === (k === '28d')}" ${go({ range: k })}>${t}</button>`).join('')}</div>`); body = reportsBody(locs, one ? null : toLocTab('reports'), toDay) + (one ? dayTable(locs[0], Array.from({ length: 14 }, (_, k) => LAST - k), toDay) : ''); }
     else if (S.page === 'flags') { head = pageHead('HR Flags', [scopeName]); body = flagsBody(locs); }
     else if (S.page === 'writeups') { head = pageHead('Write-ups', [scopeName]); body = writeupsBody(locs); }
     else if (S.page === 'tips') { head = pageHead('Tip Distribution', scopeLine, rangeCtl({ noCompare: true })); body = tipsBody(locs, toDay); }
     else if (S.page === 'settings') { head = pageHead('Settings', ['Organization']); body = settingsBody(); }
     else { head = pageHead('Employees', [scopeName]); body = employeesBody(locs); }
     const dr = S.drawer ? drawer(S.drawer.loc, S.drawer.day) : '';
-    return `<div class="app${S.navOpen ? ' nav-open' : ''}">${nav(S.page, navItems('B'))}<div class="col">${topbar(crumb, scopeBtn)}<div class="scroll"><main class="page${S.page === "home" ? " page--home" : ""}">${head}${body}</main></div></div>${dr}</div>`;
+    return `<div class="app${S.navOpen ? ' nav-open' : ''}">${nav(onLocPage ? 'locations' : S.page, navItems('B'))}<div class="col">${topbar(crumb, scopeBtn)}<div class="scroll"><main class="page${S.page === "home" ? " page--home" : ""}">${head}${body}</main></div></div>${dr}</div>`;
   }
   function scorecard() {
     const idx = idxRange(), c = hasCmp(idx);
-    return `<div class="op-table-wrap"><table class="op-table"><thead><tr><th>Location</th><th class="num">Net sales</th><th class="num">${cmpLabel()}</th><th>Labor % vs target</th><th>Closing Reports, last 7</th>${seesDiscipline() ? '<th class="num">Open HR Flags</th>' : ''}${S.role !== 'hr' ? '<th>Tip Distribution</th>' : ''}<th class="num">Needs attention</th></tr></thead><tbody>${LOCS.map(l => { const a = agg([l], idx), b = c ? agg([l], cmpIdx(idx)) : null, t = target(l), over = a.labor > t + OVER, w = Math.min(100, a.labor / 36 * 100), tw = t / 36 * 100; const tipOpen = D[l].slice(LAST - 13).filter(d => d.tip === 'reopened').length; return `<tr data-scope="${l}" data-go="{}"><td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td><td class="num">${F.money(a.sales)}</td><td class="num muted">${b ? F.delta(pctChange(a.sales, b.sales)) : '—'}</td><td><span style="display:flex;align-items:center;gap:8px"><span style="position:relative;width:96px;height:8px;border-radius:4px;background:var(--surface-hover)"><span style="position:absolute;left:0;top:0;bottom:0;width:${w}%;border-radius:4px;background:${over ? 'var(--warning-solid)' : 'var(--neutral-400)'}"></span><span style="position:absolute;left:${tw}%;top:-3px;bottom:-3px;width:2px;background:var(--chart-target)"></span></span><span class="num${over ? ' bad' : ''}">${over ? '▲ ' : ''}${F.pct(a.labor)}</span></span></td><td><span style="display:flex;gap:3px">${Array.from({ length: 7 }, (_, k) => O.cell('closingReport', D[l][LAST - 6 + k].cr, { size: 'sm', title: dTitle(LAST - 6 + k) })).join('')}</span></td>${seesDiscipline() ? `<td class="num">${FLAGS.filter(f => f.loc === l && f.state !== 'resolved').length}</td>` : ''}${S.role !== 'hr' ? `<td>${tipOpen ? O.chip("tipDistribution", "reopened", { size: "sm" }) : `<span class="tert" style="font-size:13px">Finalized through ${dTitle(LAST - 1).slice(5)}</span>`}</td>` : ''}<td class="num">${attention([l]).length}</td></tr>`; }).join('')}</tbody></table></div>`;
+    return `<div class="op-table-wrap"><table class="op-table"><thead><tr><th>Location</th><th class="num">Net sales</th><th class="num">${cmpLabel()}</th><th>Labor % vs target</th><th>Closing Reports, last 7</th>${seesDiscipline() ? '<th class="num">Open HR Flags</th>' : ''}${S.role !== 'hr' ? '<th>Tip Distribution</th>' : ''}<th class="num">Needs attention</th></tr></thead><tbody>${LOCS.map(l => { const a = agg([l], idx), b = c ? agg([l], cmpIdx(idx)) : null, t = target(l), over = a.labor > t + OVER, w = Math.min(100, a.labor / 36 * 100), tw = t / 36 * 100; const tipOpen = D[l].slice(LAST - 13).filter(d => d.tip === 'reopened').length; return `<tr data-row-loc="${l}" data-go="{}"><td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td><td class="num">${F.money(a.sales)}</td><td class="num muted">${b ? F.delta(pctChange(a.sales, b.sales)) : '—'}</td><td><span style="display:flex;align-items:center;gap:8px"><span style="position:relative;width:96px;height:8px;border-radius:4px;background:var(--surface-hover)"><span style="position:absolute;left:0;top:0;bottom:0;width:${w}%;border-radius:4px;background:${over ? 'var(--warning-solid)' : 'var(--neutral-400)'}"></span><span style="position:absolute;left:${tw}%;top:-3px;bottom:-3px;width:2px;background:var(--chart-target)"></span></span><span class="num${over ? ' bad' : ''}">${over ? '▲ ' : ''}${F.pct(a.labor)}</span></span></td><td><span style="display:flex;gap:3px">${Array.from({ length: 7 }, (_, k) => O.cell('closingReport', D[l][LAST - 6 + k].cr, { size: 'sm', title: dTitle(LAST - 6 + k) })).join('')}</span></td>${seesDiscipline() ? `<td class="num">${FLAGS.filter(f => f.loc === l && f.state !== 'resolved').length}</td>` : ''}${S.role !== 'hr' ? `<td>${tipOpen ? O.chip("tipDistribution", "reopened", { size: "sm" }) : `<span class="tert" style="font-size:13px">Finalized through ${dTitle(LAST - 1).slice(5)}</span>`}</td>` : ''}<td class="num">${attention([l]).length}</td></tr>`; }).join('')}</tbody></table></div>`;
   }
   function drawer(l, i) {
     const dd = dayBody(l, i);
-    return `<div class="drawer-layer"><div class="op-scrim" data-act="close"></div><aside class="op-drawer" role="dialog" aria-label="Business Day"><div class="op-drawer-h">${glyphKey(l)}<b class="h3" style="flex:1">${LN(l)} · ${dTitle(i)}</b><button class="op-btn op-btn--secondary op-btn--sm op-icon-btn" aria-label="Previous Business Day" ${i > 0 ? go({ drawer: { loc: l, day: i - 1 } }) : 'disabled'}>${I('chevron-left', 16)}</button><button class="op-btn op-btn--secondary op-btn--sm op-icon-btn" aria-label="Next Business Day" ${i < LAST ? go({ drawer: { loc: l, day: i + 1 } }) : 'disabled'}>${I('chevron-right', 16)}</button><button class="op-btn op-btn--ghost op-btn--sm op-icon-btn" aria-label="Close" data-act="close">${I('x', 16)}</button></div><div class="op-drawer-b">${dd.header ? dd.header + dd.notesC + dd.figures + dd.mix + dd.topT : dd}</div><div class="op-drawer-f">${S.scope === l ? '' : `<button class="op-btn op-btn--secondary op-btn--sm" ${go({ scope: l, drawer: null, page: 'home' })}>${I('store', 16)}Scope to ${LN(l)}</button>`}<button class="op-btn op-btn--ghost op-btn--sm">${I('external-link', 16)}Open full page</button></div></aside></div>`;
+    return `<div class="drawer-layer"><div class="op-scrim" data-act="close"></div><aside class="op-drawer" role="dialog" aria-label="Business Day"><div class="op-drawer-h">${glyphKey(l)}<b class="h3" style="flex:1">${LN(l)} · ${dTitle(i)}</b><button class="op-btn op-btn--secondary op-btn--sm op-icon-btn" aria-label="Previous Business Day" ${i > 0 ? go({ drawer: { loc: l, day: i - 1 } }) : 'disabled'}>${I('chevron-left', 16)}</button><button class="op-btn op-btn--secondary op-btn--sm op-icon-btn" aria-label="Next Business Day" ${i < LAST ? go({ drawer: { loc: l, day: i + 1 } }) : 'disabled'}>${I('chevron-right', 16)}</button><button class="op-btn op-btn--ghost op-btn--sm op-icon-btn" aria-label="Close" data-act="close">${I('x', 16)}</button></div><div class="op-drawer-b">${dd.header ? dd.header + dd.notesC + dd.figures + dd.mix + dd.topT : dd}</div>${S.page === 'location' && S.loc === l ? '' : `<div class="op-drawer-f"><button class="op-btn op-btn--secondary op-btn--sm" ${go({ page: 'location', loc: l, tab: 'overview', drawer: null })}>${I('store', 16)}Open ${LN(l)}</button></div>`}</aside></div>`;
   }
 
   /* ───────────── Variant C: Board (Locations x Business Days), side pane ───────────── */
@@ -498,7 +511,7 @@
   }
 
   /* ───────────── Prototype bar ───────────── */
-  const VARIANTS = [['A', 'Pages', 'Sections, a Location page and a Business Day page'], ['B', 'Scope', 'One switcher re-scopes everything; days open in a drawer'], ['C', 'Board', 'Locations x Business Days on one canvas, details in a side pane']];
+  const VARIANTS = [['A', 'Pages', 'Sections, a Location page and a Business Day page'], ['B', 'Scope', 'Scope switcher, Location pages with tabs, days in a drawer'], ['C', 'Board', 'Locations x Business Days on one canvas, details in a side pane']];
   function protoBar() {
     const v = VARIANTS.find(x => x[0] === S.variant);
     const bar = `<div class="proto" role="toolbar" aria-label="Prototype controls"><button class="arrow" data-act="prev" title="Previous variant (←)" aria-label="Previous variant">‹</button><span class="lbl"><b>${v[0]}</b>${v[1]}<span class="tert" style="color:var(--proto-dim)"> · ${v[2]}</span></span><button class="arrow" data-act="next" title="Next variant (→)" aria-label="Next variant">›</button><span class="sep"></span><select id="proto-role" data-set="role" aria-label="View as">${Object.entries(PERSONAS).map(([k, p]) => `<option value="${k}" ${S.role === k ? 'selected' : ''}>As ${p.title}</option>`).join('')}</select><button data-act="pop" aria-expanded="${S.pop}">Org toggles</button></div>`;
@@ -533,13 +546,12 @@
     if (!el) { if (S.scopeOpen && !e.target.closest('.scope-wrap')) set({ scopeOpen: false }); return; }
     e.preventDefault();
     const patch = JSON.parse(el.dataset.go);
-    if (el.dataset.rowLoc) Object.assign(patch, S.variant === 'B' ? { scope: el.dataset.rowLoc } : S.variant === 'C' ? { page: 'board', paneKind: 'loc', paneLoc: el.dataset.rowLoc } : { page: 'location', loc: el.dataset.rowLoc, tab: S.page === 'sales' ? 'sales' : 'overview' });
-    if (el.dataset.scope) Object.assign(patch, { scope: el.dataset.scope });
+    if (el.dataset.rowLoc) Object.assign(patch, S.variant === 'C' ? { page: 'board', paneKind: 'loc', paneLoc: el.dataset.rowLoc } : { page: 'location', loc: el.dataset.rowLoc, tab: S.page === 'sales' ? 'sales' : 'overview' });
     if (el.dataset.day) { const l = el.dataset.dl, i = +el.dataset.day; Object.assign(patch, S.variant === 'A' ? { page: 'day', loc: l, day: i } : S.variant === 'B' ? { drawer: { loc: l, day: i } } : { page: 'board', paneKind: 'cell', paneLoc: l, paneDay: i }); }
     if (patch.day != null && patch.loc && !patch.page && S.variant !== 'A' && S.page !== 'day') { Object.assign(patch, S.variant === 'B' ? { drawer: { loc: patch.loc, day: patch.day } } : { page: 'board', paneKind: 'cell', paneLoc: patch.loc, paneDay: patch.day }); delete patch.loc; delete patch.day; }
     if (patch.day != null && patch.loc && !patch.page && S.variant === 'A') patch.page = 'day';
     if (S.variant === 'C' && patch.page && ['sales', 'reports', 'locations'].includes(patch.page)) { Object.assign(patch, { page: 'board', metric: patch.page === 'sales' ? 'sales' : 'cr', paneKind: patch.loc ? 'loc' : null, paneLoc: patch.loc || null }); }
-    if (S.variant === 'B' && patch.loc && patch.page) { patch.scope = patch.loc; }
+    if (S.variant !== 'C' && patch.loc && ['sales', 'reports', 'tips'].includes(patch.page)) Object.assign(patch, { page: 'location', tab: patch.page });
     patch.navOpen = false;
     set(patch);
   });
