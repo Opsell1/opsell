@@ -91,3 +91,17 @@ _Avoid_: Tip rules, tip settings
 **Pay Period**:
 The Organization's recurring payroll window (weekly, biweekly or semimonthly) that groups Tip Distributions for export to payroll.
 _Avoid_: Pay cycle, payroll week
+
+## Notifications
+
+**Notification**:
+A message in a user's Opsell inbox telling them that something happened on a record they can see, which they mark read rather than act on.
+_Avoid_: Alert, message, ping
+
+**To-do**:
+An item in a user's inbox asking them to act on a specific record, which clears itself once that work is done rather than when it is read.
+_Avoid_: Task, action item, reminder
+
+**Digest**:
+A single scheduled email summarizing a user's Notifications, open To-dos and Overdue items since the previous one.
+_Avoid_: Summary email, newsletter, report
