@@ -120,9 +120,11 @@
   const S = {
     variant: 'A', role: 'admin', page: 'home', loc: null, day: null, tab: 'overview', range: 'yesterday', compare: 'wow',
     scope: 'all', drawer: null, metric: 'cr', paneKind: null, paneLoc: null, paneDay: null, scopeOpen: false, pop: false, navOpen: false,
-    opsDiscipline: false, hrSales: false, perLocTarget: false
+    opsDiscipline: false, hrSales: true, perLocTarget: true // decided on Corporate dashboards: HR sees Sales & Labor, each Location has its own labor target
   };
   const target = l => S.perLocTarget && l ? LOC_TARGET[l] : ORG_TARGET;
+  // Across Locations the target is the sales-weighted blend of each Location's target.
+  const blendTarget = (locs, idx) => { if (!S.perLocTarget) return ORG_TARGET; let s = 0, w = 0; locs.forEach(l => idx.forEach(i => { const d = D[l][i]; if (d && !d.closed) { s += d.sales; w += d.sales * target(l); } })); return s ? +(w / s).toFixed(1) : ORG_TARGET; };
   const idxRange = () => { const n = RANGES[S.range][1]; return Array.from({ length: n }, (_, k) => LAST - n + 1 + k); };
   const shift = () => S.compare === 'wow' ? 7 : S.compare === 'prior' ? RANGES[S.range][1] : 364;
   const cmpAvailable = c => c === 'wow' ? S.range !== '13w' || true : c === 'prior' ? S.range !== '13w' : false;
@@ -224,7 +226,7 @@
     const p = PERSONAS[S.role], idx = idxRange(), cIdx = cmpIdx(idx), a = agg(locs, idx), c = hasCmp(idx) ? agg(locs, cIdx) : null;
     const spIdx = Array.from({ length: 14 }, (_, k) => LAST - 13 + k);
     const scopeName = locs.length === 1 ? LN(locs[0]) : `${locs.length} Locations`;
-    const tgt = locs.length === 1 ? target(locs[0]) : ORG_TARGET;
+    const tgt = locs.length === 1 ? target(locs[0]) : blendTarget(locs, idx);
     const inCount = locs.filter(l => ['submitted', 'late', 'amended'].includes(D[l][LAST].cr)).length;
     const cells = `<span style="display:flex;gap:4px">${locs.map(l => O.cell('closingReport', D[l][LAST].cr, { size: 'sm', title: `${LN(l)} · ${O.STATUS.closingReport[D[l][LAST].cr].label}` })).join('')}</span>`;
     const openFlags = FLAGS.filter(f => f.state !== 'resolved' && locs.includes(f.loc));
@@ -263,7 +265,7 @@
   function salesBody(locs, onLoc, onDay) {
     const idx = idxRange(), a = agg(locs, idx), c = hasCmp(idx) ? agg(locs, cmpIdx(idx)) : null, many = locs.length > 1;
     const chIdx = idx.length < 14 ? Array.from({ length: 14 }, (_, k) => LAST - 13 + k) : idx;
-    const tgt = many ? ORG_TARGET : target(locs[0]);
+    const tgt = many ? blendTarget(locs, idx) : target(locs[0]);
     const mini = (label, v, d) => `<div class="op-card op-kpi" style="cursor:default"><span class="op-kpi-h">${label}</span><span class="op-kpi-n" style="font-size:22px;line-height:28px">${v}</span><span class="op-kpi-f">${d}<span>${cmpLabel()}</span></span></div>`;
     let h = `<div class="g-kpi5">${mini('Net sales', F.money(a.sales), delta(c && pctChange(a.sales, c.sales), '%', 'done'))}${mini('Labor % of sales', F.pct(a.labor), delta(c && a.labor - c.labor, 'pts', a.labor > tgt ? 'warning' : null))}${mini('Labor cost', F.money(a.cost), delta(c && pctChange(a.cost, c.cost), '%'))}${mini('Overtime', a.ot.toFixed(1) + ' h', delta(c && pctChange(a.ot, c.ot), '%', c && a.ot > c.ot * 1.1 ? 'warning' : null))}${mini('Avg check', F.money(a.check, { cents: true }), delta(c && pctChange(a.check, c.check), '%'))}</div>`;
     const salesLine = chartCard('Net sales', `${chIdx.length} Business Days · dashed = ${S.compare === 'prior' ? 'prior period' : 'same weekday, week before'}`, el => O.charts.line(el, { labels: chIdx.map(i => String(dCol(i)[1])), tipLabels: chIdx.map(dTitle), height: 220, yFormat: v => F.money(v, { compact: true }), series: [{ name: 'This period', values: chIdx.map(i => orgDay(i, locs)), color: 'var(--chart-current)', area: true }, { name: S.compare === 'prior' ? 'Prior period' : 'Week before', values: chIdx.map(i => orgDay(i - (S.compare === 'prior' ? chIdx.length : 7), locs)), color: 'var(--chart-prior)', dashed: true }], onClick: i => onDay(many ? null : locs[0], chIdx[i]) }));
@@ -273,9 +275,9 @@
       const rows = locs.map(l => { const x = agg([l], idx), y = c ? agg([l], cmpIdx(idx)) : null; return { l, x, y }; }).sort((p, q) => q.x.sales - p.x.sales);
       h += `<div class="op-table-wrap"><table class="op-table"><thead><tr><th>Location</th><th>Last 14 days</th><th class="num">Net sales</th><th class="num">${cmpLabel()}</th><th class="num">Labor %</th><th class="num">Target</th><th class="num">Labor cost</th><th class="num">Overtime h</th><th class="num">Orders</th><th class="num">Avg check</th></tr></thead><tbody>` +
         rows.map(({ l, x, y }) => { const over = x.labor > target(l) + OVER; return `<tr ${onLoc ? `data-row-loc="${l}"` : ''} ${onLoc ? 'data-go="{}"' : ''}><td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td><td>${sparkOf(Array.from({ length: 14 }, (_, k) => D[l][LAST - 13 + k].sales), { width: 88, height: 24 })}</td><td class="num">${F.money(x.sales)}</td><td class="num muted">${y ? F.delta(pctChange(x.sales, y.sales)) : '—'}</td><td class="num${over ? ' bad' : ''}">${over ? '▲ ' : ''}${F.pct(x.labor)}</td><td class="num muted">${target(l)}%</td><td class="num">${F.money(x.cost)}</td><td class="num${x.ot > 14 * idx.length / 7 ? ' bad' : ''}">${x.ot.toFixed(1)}</td><td class="num">${F.count(x.orders)}</td><td class="num">${F.money(x.check, { cents: true })}</td></tr>`; }).join('') +
-        `</tbody><tfoot><tr><td>All Locations</td><td></td><td class="num">${F.money(a.sales)}</td><td class="num muted">${c ? F.delta(pctChange(a.sales, c.sales)) : '—'}</td><td class="num">${F.pct(a.labor)}</td><td class="num muted">${S.perLocTarget ? '—' : ORG_TARGET + '%'}</td><td class="num">${F.money(a.cost)}</td><td class="num">${a.ot.toFixed(1)}</td><td class="num">${F.count(a.orders)}</td><td class="num">${F.money(a.check, { cents: true })}</td></tr></tfoot></table></div>`;
+        `</tbody><tfoot><tr><td>All Locations</td><td></td><td class="num">${F.money(a.sales)}</td><td class="num muted">${c ? F.delta(pctChange(a.sales, c.sales)) : '—'}</td><td class="num">${F.pct(a.labor)}</td><td class="num muted">${blendTarget(locs, idx) + '%'}</td><td class="num">${F.money(a.cost)}</td><td class="num">${a.ot.toFixed(1)}</td><td class="num">${F.count(a.orders)}</td><td class="num">${F.money(a.check, { cents: true })}</td></tr></tfoot></table></div>`;
       const hIdx = Array.from({ length: 14 }, (_, k) => LAST - 13 + k);
-      h += chartCard('Labor % by Location and Business Day', 'Last 14 Business Days · ▲ = 2+ pts over the % target', el => O.charts.heatmap(el, { mode: 'seq', cols: hIdx.map(dCol), colTitles: hIdx.map(dTitle), rows: locs.map(l => ({ label: LN(l), id: l, cells: hIdx.map(i => D[l][i].labor) })), bins: [27, 29, 31, 33], flagAt: 29, target: ORG_TARGET, labelWidth: 110, summary: { title: 'Avg', value: r => F.pct(agg([r.id], hIdx).labor) }, onClick: (r, ci) => onDay(r.id, hIdx[ci]) }));
+      h += chartCard('Labor % by Location and Business Day', `Last 14 Business Days · ▲ = ${OVER}+ pts over ${S.perLocTarget ? "the Location's target" : `the ${ORG_TARGET}% target`}`, el => O.charts.heatmap(el, { mode: 'seq', cols: hIdx.map(dCol), colTitles: hIdx.map(dTitle), rows: locs.map(l => ({ label: LN(l), id: l, cells: hIdx.map(i => D[l][i].labor) })), bins: [27, 29, 31, 33], flagAt: 29, target: ORG_TARGET, labelWidth: 110, summary: { title: 'Avg', value: r => F.pct(agg([r.id], hIdx).labor) }, onClick: (r, ci) => onDay(r.id, hIdx[ci]) }));
       h += `<div class="g-2">${chartCard('Sales mix by daypart', rangeTitle(), el => O.charts.stacked(el, { percent: true, inlineLabels: true, labelWidth: 96, keys: DAYPART_KEYS.map((k, j) => ({ name: k, color: `var(--daypart-${j + 1})` })), rows: locs.map(l => ({ label: LN(l), parts: DAYPART_KEYS.map((_, j) => idx.reduce((s, i) => s + (D[l][i].daypart ? D[l][i].daypart[j] : 0), 0)) })) }))}${chartCard('Sales mix by category', rangeTitle(), el => O.charts.stacked(el, { percent: true, inlineLabels: true, labelWidth: 96, keys: CAT_KEYS.map((k, j) => ({ name: k, color: `var(--mix-${j + 1})` })), rows: locs.map(l => ({ label: LN(l), parts: CAT_KEYS.map((_, j) => idx.reduce((s, i) => s + (D[l][i].cats ? D[l][i].cats[j] : 0), 0)) })) }))}</div>`;
     } else {
       const l = locs[0];
@@ -303,7 +305,7 @@
     const open = list.filter(f => f.state !== 'resolved');
     const byCat = HR_CATS.map(c => ({ label: c.replace(' or discrimination complaint', ' complaint'), value: list.filter(f => f.cat === c && f.day > LAST - 91).length })).filter(r => r.value);
     return `<div class="g-21"><div class="op-table-wrap"><table class="op-table"><thead><tr><th>HR Flag</th><th>Employee</th><th>Location</th><th>Raised</th><th>From</th><th>State</th></tr></thead><tbody>${list.slice(0, 14).map(f => `<tr><td style="font-weight:500">${f.cat}</td><td>${f.emp}</td><td>${O.locTag(LN(f.loc))}</td><td class="muted">${dTitle(f.day)}</td><td class="muted">${f.source}</td><td>${O.chip('hrFlag', f.state, { size: 'sm' })}${f.outcome ? ` <span class="tert" style="font-size:12px">${f.outcome}</span>` : ''}</td></tr>`).join('')}</tbody></table></div>
-      <div class="stack">${chartCard('HR Flags by category', 'Last 13 weeks', el => O.charts.hbar(el, { labelWidth: 130, format: v => String(v), valueName: 'Flags', rows: byCat }))}${chartCard('Open by Location', `${open.length} open`, el => O.charts.hbar(el, { labelWidth: 96, format: v => String(v), valueName: 'Open', rows: locs.map(l => ({ label: LN(l), value: open.filter(f => f.loc === l).length, tone: open.some(f => f.loc === l && f.state === 'urgent') ? 'critical' : null })) }))}</div></div>`;
+      <div class="stack">${chartCard('HR Flags by category', 'Last 13 weeks', el => O.charts.hbar(el, { labelWidth: 130, format: v => String(v), valueName: 'Flags', rows: byCat }))}${locs.length > 1 ? chartCard('Open by Location', `${open.length} open`, el => O.charts.hbar(el, { labelWidth: 96, format: v => String(v), valueName: 'Open', rows: locs.map(l => ({ label: LN(l), value: open.filter(f => f.loc === l).length, tone: open.some(f => f.loc === l && f.state === 'urgent') ? 'critical' : null })) })) : ''}</div></div>`;
   }
   function writeupsBody(locs) {
     const list = visibleWriteups().filter(w => locs.includes(w.loc));
@@ -404,7 +406,7 @@
     let crumb = onLocPage ? '' : crumbs(one ? [[titles[S.page], { scope: 'all' }], [LN(locs[0])]] : [[titles[S.page]]]);
     let head, body;
     const scopeLine = [rangeTitle(), scopeName];
-    if (onLocPage) ({ crumb, head, body } = locationPage(S.loc, toDay, ['overview', 'sales', 'reports', 'tips']));
+    if (onLocPage) ({ crumb, head, body } = locationPage(S.loc, toDay, ['overview', 'sales', 'reports', 'people', 'tips']));
     else if (S.page === 'locations') { crumb = crumbs([['Locations']]); head = pageHead('Locations', [rangeTitle(), `${LOCS.length} Locations`], rangeCtl()); body = locationsBody(); }
     else if (S.page === 'home') { const hm = home(locs, toLoc); head = hm.head; body = hm.body;
       if (!one) body = body.replace('<div class="g-home">', `${scorecard()}<div class="g-home">`);
@@ -507,7 +509,7 @@
   function settingsBody() {
     return `<div class="op-card" style="padding:var(--space-5);display:grid;gap:var(--space-4);max-width:640px"><b class="h3">Organization settings that change these dashboards</b>
       <div class="section-note">Mirrors the prototype bar's toggles so the founder can see where they would live.</div>
-      ${[['opsDiscipline', 'Ops reads discipline', 'Ops sees HR Flags and Write-ups.'], ['perLocTarget', 'Labor % target per Location', `Off: one Organization target (${ORG_TARGET}%). On: Valencia 27, Lake 26, Court 28, Mass 30, Lamar 26.`], ['hrSales', 'HR sees Sales & Labor', 'Open question from the Anatomy ticket.']].map(([k, t, d]) => `<label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer"><input type="checkbox" class="op-toggle" id="set-${k}" data-toggle="${k}" ${S[k] ? 'checked' : ''}><span style="display:grid"><b style="font-weight:500">${t}</b><span class="muted" style="font-size:13px">${d}</span></span></label>`).join('')}</div>`;
+      ${`<div style="display:grid;gap:var(--space-2)"><b style="font-weight:500">Labor % target per Location</b><span class="muted" style="font-size:13px">A day ${OVER}+ points over its Location's target is an exception. Across Locations, the target is the sales-weighted blend.</span><table class="op-table" style="width:auto"><tbody>${LOCS.map(l => `<tr><td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td><td class="num">${LOC_TARGET[l]}%</td></tr>`).join('')}</tbody></table></div>` + [['opsDiscipline', 'Ops reads discipline', 'Off by default. On: Ops sees HR Flags and Write-ups.']].map(([k, t, d]) => `<label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer"><input type="checkbox" class="op-toggle" id="set-${k}" data-toggle="${k}" ${S[k] ? 'checked' : ''}><span style="display:grid"><b style="font-weight:500">${t}</b><span class="muted" style="font-size:13px">${d}</span></span></label>`).join('')}</div>`;
   }
 
   /* ───────────── Prototype bar ───────────── */
@@ -515,7 +517,7 @@
   function protoBar() {
     const v = VARIANTS.find(x => x[0] === S.variant);
     const bar = `<div class="proto" role="toolbar" aria-label="Prototype controls"><button class="arrow" data-act="prev" title="Previous variant (←)" aria-label="Previous variant">‹</button><span class="lbl"><b>${v[0]}</b>${v[1]}<span class="tert" style="color:var(--proto-dim)"> · ${v[2]}</span></span><button class="arrow" data-act="next" title="Next variant (→)" aria-label="Next variant">›</button><span class="sep"></span><select id="proto-role" data-set="role" aria-label="View as">${Object.entries(PERSONAS).map(([k, p]) => `<option value="${k}" ${S.role === k ? 'selected' : ''}>As ${p.title}</option>`).join('')}</select><button data-act="pop" aria-expanded="${S.pop}">Org toggles</button></div>`;
-    const pop = S.pop ? `<div class="proto-pop"><h4>Organization toggles and open questions</h4>${[['opsDiscipline', 'Ops reads discipline', 'Org Admin toggle. Off: Ops sees no HR Flags or Write-ups (switch to "As Ops").'], ['perLocTarget', 'Labor % target per Location', `Open question. Off: ${ORG_TARGET}% for the whole Organization. On: Mass Ave 30%, Court St 28%, Lake Ave and South Lamar 26%.`], ['hrSales', 'HR sees Sales & Labor', 'Open question. Off: HR has no sales or labor figures beyond what Closing Reports show.']].map(([k, t, d]) => `<label><input type="checkbox" id="pop-${k}" data-toggle="${k}" ${S[k] ? 'checked' : ''}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}<div class="about">Year-over-year comparison is listed but disabled: the demo has 13 weeks of history. Keys: ← → change variant.</div></div>` : '';
+    const pop = S.pop ? `<div class="proto-pop"><h4>Organization toggle</h4>${[['opsDiscipline', 'Ops reads discipline', 'Org Admin toggle, off by default. Off: Ops sees no HR Flags or Write-ups (switch to "As Ops").']].map(([k, t, d]) => `<label><input type="checkbox" id="pop-${k}" data-toggle="${k}" ${S[k] ? 'checked' : ''}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}<div class="about">Decided: each Location has its own labor % target (exception at ${OVER}+ pts over), and HR sees Sales & Labor. Year-over-year comparison is listed but disabled: the demo has 13 weeks of history. Keys: ← → change variant.</div></div>` : '';
     return bar + pop;
   }
 
