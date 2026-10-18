@@ -324,3 +324,31 @@ select.op-input { appearance: none; font: inherit; background-image: none; }
 .cn { position: relative; }
 .cn:not(.editing) .cn-acts { position: absolute; right: 4px; top: 3px; padding-left: 8px; background: var(--surface-hover); border-radius: var(--radius-sm); }
 @media (max-width: 520px) { .proto { overflow-x: auto; justify-content: flex-start; } .proto > * { flex: none; } }
+
+/* D: founder's pick */
+.ai-tag { display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; padding: 0 5px; height: 18px; border-radius: var(--radius-xs); background: var(--accent-bg); color: var(--accent-text); font-size: 11px; font-weight: 500; vertical-align: 1px; white-space: nowrap; }
+.mv { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 6px; border-radius: var(--radius-md); color: var(--text-secondary); font-size: 12px; cursor: pointer; }
+.mv:hover { background: var(--surface-card); color: var(--text-primary); }
+.mv select { all: unset; cursor: pointer; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv:focus-within { box-shadow: var(--shadow-focus); }
+.filing { display: flex; align-items: center; gap: var(--space-2); padding: 6px 8px; border-radius: var(--radius-sm); border: 1px dashed var(--accent-border); background: var(--accent-bg); font-size: 14px; }
+.filing > .op-icon { color: var(--accent-text); flex: none; animation: filing 1s ease-in-out infinite; }
+.filing > span:nth-child(2) { flex: 1; min-width: 0; }
+.filing .tert { font-size: 12px; }
+@keyframes filing { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .filing > .op-icon { animation: none; } }
+.composer-d { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-default); background: var(--surface-hover); }
+.composer-d .composer { align-items: flex-start; }
+.composer-d .composer .cn-by { padding-top: 9px; }
+.composer-d .op-input--area textarea { min-height: 44px; }
+.composer-d .op-input--area .ph { align-self: flex-start; height: 26px; }
+.cmp-btns { display: flex; gap: 4px; padding-top: 4px; }
+.op-input--sm { height: 28px; font-size: 12px; }
+.pool-cards .cash .op-input { width: 100%; max-width: 180px; height: 32px; }
+.lnk { color: var(--accent-text); cursor: pointer; text-decoration: underline; font-size: 12px; }
+.tips-below { display: grid; gap: var(--space-2); justify-items: start; }
+.tips-below > .op-card { justify-self: stretch; }
+.tips-t td:last-child { white-space: nowrap; }
+.tips-t .who > span { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; white-space: normal; }
+.tips-t .who > span .op-chip { height: 18px; }
+.tips-t td:first-child { white-space: normal; min-width: 220px; padding-block: 6px; }

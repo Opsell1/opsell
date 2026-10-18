@@ -64,12 +64,20 @@
     ['za', 'Zoe Adams', 'Team Member', ['mass'], 'Barista'], ['km', 'Kofi Mensah', 'Team Member', ['mass'], 'Barista'], ['lt', 'Lucy Tran', 'Team Member', ['mass'], 'Cashier'], ['jp', 'Jamal Price', 'Team Member', ['mass'], 'Cashier'],
     ['rp', 'Ravi Patel', 'Team Member', ['mass'], 'Cashier'], ['ms', 'Marco Silva', 'Team Member', ['mass'], 'Baker'], ['da', 'Diego Alvarez', 'Team Member', ['mass'], 'Baker'],
     ['rd', 'Rosa Diaz', 'Manager', ['court'], 'Manager'], ['oh', 'Omar Haddad', 'Senior-sup', ['court'], 'Shift lead'], ['mz', 'Ming Zhao', 'Team Member', ['court'], 'Barista'], ['nb', 'Nora Bell', 'Team Member', ['court'], 'Cashier'],
-    ['mk', 'Maya Kim', 'Team Member', ['court'], 'Barista'], ['tg', 'Theo Grant', 'Team Member', ['court'], 'Baker'], ['kj', 'Kara Jensen', 'Team Member', ['court'], 'Cashier']
+    ['mk', 'Maya Kim', 'Team Member', ['court'], 'Barista'], ['tg', 'Theo Grant', 'Team Member', ['court'], 'Baker'], ['kj', 'Kara Jensen', 'Team Member', ['court'], 'Cashier'],
+    ['nk', 'Noah Brooks', 'Team Member', ['mass'], 'Barista'],
+    // Employees at the other three Locations, only ever seen here as people covering a shift
+    ['ec', 'Emily Carter', 'Team Member', ['lake'], 'Barista'], ['gh', 'Grace Huang', 'Team Member', ['lake'], 'Cashier'], ['ds', 'Devin Shaw', 'Team Member', ['valencia'], 'Barista'], ['lm', 'Leo Martins', 'Team Member', ['lamar'], 'Cashier']
   ].map(([id, name, role, locs, pos], k) => ({ id, name, role, locs, pos, pid: 1001 + k, first: name.split(' ')[0] }));
   const P = id => PEOPLE.find(p => p.id === id);
   const PN = id => id ? P(id).name : '';
   const PERSONAS = { gm: 'jr', mgr: 'hc', ss: 'ab' };
   const staffAt = l => PEOPLE.filter(p => p.locs.includes(l));
+  // New hires: the Business Days they have worked so far. Everyone else has worked well past the waiting period.
+  const SHIFT_DAYS = { nk: [87, 88, 89, 90] }; // Noah Brooks started Tue, Oct 13
+  const WAIT = 5; // founder's bakery: tip-eligible from the 5th day worked, in a tip-eligible Position
+  const dayNo = (emp, i) => SHIFT_DAYS[emp] ? SHIFT_DAYS[emp].filter(d => d <= i).length : 99;
+  const worksOn = (emp, i) => !SHIFT_DAYS[emp] || SHIFT_DAYS[emp].includes(i);
 
   /* ───────────── Prototype state ───────────── */
   const S = {
@@ -216,7 +224,7 @@
   function tip(l, i) {
     const key = `${l}-${i}`;
     if (TIP[key]) return TIP[key];
-    const lines = staffAt(l).filter(p => rnd() < 0.8 || p.role === 'Senior-sup').map(p => { const ran = p.role === 'Senior-sup' && rnd() < 0.7; return line(p.id, ran || p.role !== 'Senior-sup' ? p.pos : 'Barista', +(4 + Math.round(rnd() * 9) / 2).toFixed(1), { ranShift: ran, declared: POS[p.pos] === 'FOH' ? Math.round(rnd() * 12) * 100 : 0 }); });
+    const lines = staffAt(l).filter(p => worksOn(p.id, i) && (rnd() < 0.8 || p.role === 'Senior-sup')).map(p => { const ran = p.role === 'Senior-sup' && rnd() < 0.7; return line(p.id, ran || p.role !== 'Senior-sup' ? p.pos : 'Barista', +(4 + Math.round(rnd() * 9) / 2).toFixed(1), { ranShift: ran, declared: POS[p.pos] === 'FOH' ? Math.round(rnd() * 12) * 100 : 0 }); });
     const t = { l, i, state: 'finalized', card: D[l][i].card, cash: Math.round(D[l][i].sales * (0.018 + rnd() * 0.006)) * 100, lines, by: pick(staffAt(l).filter(p => isLeadRole(p)).map(p => p.id)), at: `1${Math.floor(rnd() * 3)}:${10 + Math.floor(rnd() * 49)}`, version: 1 };
     return (TIP[key] = t);
   }
@@ -225,7 +233,7 @@
     const m = tip('mass', LAST);
     Object.assign(m, { state: 'draft', cash: null, by: null, at: null, lines: [
       line('za', 'Barista', 7.5, { declared: 1200 }), line('km', 'Barista', 6.0), line('lt', 'Cashier', 8.0, { declared: 800 }), line('jp', 'Cashier', 5.5),
-      line('mz', 'Barista', 4.0, { covering: 'court' }), line('rp', 'Cashier', 5.0, { status: 'unapproved' }), line('ab', 'Shift lead', 8.5, { ranShift: true }),
+      line('mz', 'Barista', 4.0, { covering: 'court' }), line('nk', 'Barista', 5.0), line('rp', 'Cashier', 5.0, { status: 'unapproved' }), line('ab', 'Shift lead', 8.5, { ranShift: true }),
       line('ms', 'Baker', 7.0), line('da', 'Baker', 6.5), line('hc', 'Manager', 9.0)] });
     const c = tip('court', LAST);
     Object.assign(c, { state: 'draft', cash: null, by: null, at: null, lines: [
@@ -274,9 +282,10 @@
       for (let d = LAST - 13; d < LAST; d++) if (crState(l, d) === 'overdue') out.push({ sev: 0, tile: ['closingReport', 'overdue'], title: `Closing Report overdue · ${dTitle(d)}`, detail: 'Not submitted. Submit it late, or mark the Business Day closed.', loc: l, act: { kind: 'report', l, i: d }, due: 'Overdue' });
       for (let d = LAST - 6; d <= LAST; d++) { const r = rep(l, d); if (r.pending && r.pending.length && r.author === u.id && r.pending.some(s => s.status === 'pending')) out.push({ sev: 1, tile: ['hrFlag', 'open'], title: `Review ${r.pending.filter(s => s.status === 'pending').length} HR Flag suggestions · ${dTitle(d)}`, detail: 'You submitted this Closing Report; the AI check timed out, so the suggestions wait for you.', loc: l, act: { kind: 'later', l, i: d }, due: 'Today' }); }
       if (isLead()) {
-        for (let d = LAST - 6; d <= LAST; d++) { const ts = tipState(l, d); if (ts === 'draft') { const sp = split(l, d); out.push({ sev: 2, tile: ['tipDistribution', 'draft'], title: `Tip Distribution · ${dTitle(d)}`, detail: `${sp.needsCash ? 'Count the cash jar, ' : ''}check hours and finalize · card tips ${$(sp.t.card)}`, loc: l, act: { kind: 'tips', l, i: d }, due: 'Pay Period ends Oct 18' }); } }
+        for (let d = LAST - 6; d <= LAST; d++) { const ts = tipState(l, d); if (ts === 'draft') { const sp = split(l, d); out.push({ sev: 2, tile: ['tipDistribution', 'draft'], title: `Tip Distribution · ${dTitle(d)}`, detail: S.variant === 'D' ? `Hours in from Harri · generate tips and finalize · ${$(splitD(l, d).pool)} from Toast` : `${sp.needsCash ? 'Count the cash jar, ' : ''}check hours and finalize · card tips ${$(sp.t.card)}`, loc: l, act: { kind: 'tips', l, i: d }, due: 'Pay Period ends Oct 18' }); } }
+        if (S.variant === 'D') Object.keys(SHIFT_DAYS).filter(id => P(id).locs.includes(l) && dayNo(id, LAST) === WAIT - 1).forEach(id => out.push({ sev: 3, tile: ['tipDistribution', 'draft'], title: `${PN(id)} shares tips from the next shift`, detail: `Day ${dayNo(id, LAST)} of ${WAIT} worked as ${P(id).pos} · tip-eligible from day ${WAIT} under the Tip Policy`, loc: l, act: { kind: 'tips', l, i: LAST }, due: 'Next shift' }));
         if (S.clock === 'closing') out.push({ sev: 4, tile: ['tipDistribution', 'draft'], title: `Tip Distribution · ${dTitle(LAST)}`, detail: 'Generates automatically after the 4:00 am cutoff', loc: l, act: null, due: 'Tomorrow' });
-        out.push(...[[l === 'mass' ? 'rp' : null]].filter(x => x[0] && tipState(l, LAST) === 'draft').map(([id]) => ({ sev: 3, tile: ['dataQuality', 'unapprovedTimesheets'], title: 'Unapproved timesheet', detail: `${PN(id)} · ${dTitle(LAST)} · left out of the Tip Distribution until approved in the time clock`, loc: l, act: { kind: 'tips', l, i: LAST }, due: 'Before finalizing' })));
+        out.push(...[[l === 'mass' ? 'rp' : null]].filter(x => x[0] && tipState(l, LAST) === 'draft' && tip(l, LAST).lines.some(y => y.emp === x[0] && y.status === 'unapproved')).map(([id]) => ({ sev: 3, tile: ['dataQuality', 'unapprovedTimesheets'], title: 'Unapproved timesheet', detail: `${PN(id)} · ${dTitle(LAST)} · left out of the Tip Distribution until approved in the time clock`, loc: l, act: { kind: 'tips', l, i: LAST }, due: 'Before finalizing' })));
       }
     });
     if (isLead()) {
@@ -414,7 +423,7 @@
     opts = opts || {};
     const locked = sp.t.state === 'finalized' || !isLead();
     const rowHtml = r => `<tr class="${r.ok ? '' : 'out'}"><td><span class="op-emp">${O.avatar(PN(r.emp), 24)}<span class="who"><b>${opts.whoBtn ? who(r.emp) : PN(r.emp)}</b><span>${P(r.emp).role}${r.covering ? ` · covering from ${LN(r.covering)}` : ''}</span></span></span></td><td>${r.pos}<span class="tert" style="font-size:12px"> ${POS[r.pos]}</span></td><td class="num">${r.ok || r.kind === 'data' ? hoursCell(r, l, i, locked) : `<span class="tert">${r.h.toFixed(2)}</span>`}</td><td class="num">${r.ok ? r.w.toFixed(1) : '<span class="tert">—</span>'}</td><td class="num">${r.ok ? (r.pts).toFixed(2) : '<span class="tert">—</span>'}</td>${opts.noShares ? '' : `<td class="num">${r.ok ? $(r.cardShare) : ''}</td><td class="num">${r.ok ? (sp.needsCash ? '<span class="tert">—</span>' : $(r.cashShare)) : ''}</td><td class="num" style="font-weight:600">${r.ok ? $(r.total) : ''}</td>`}<td class="num muted">${r.declared ? $(r.declared) : ''}</td></tr>${!r.ok ? `<tr class="why"><td colspan="${opts.noShares ? 6 : 9}">${I(r.kind === 'data' ? 'file-clock' : 'ban', 12)}${r.why}${r.kind === 'data' && !locked ? ` · <a ${act('hrs-edit', r.id)}>Add the hours by hand</a>` : ''}</td></tr>` : ''}`;
-    return `<div class="op-table-wrap"><table class="op-table tips-t"><thead><tr><th>Employee</th><th>Position</th><th class="num">Approved hours</th><th class="num">Weight</th><th class="num">Points</th>${opts.noShares ? '' : '<th class="num">Card share</th><th class="num">Cash share</th><th class="num">Total</th>'}<th class="num" title="Cash an Employee declared as received directly stays theirs; shown for the record">Declared, kept</th></tr></thead><tbody>${sp.ok.map(rowHtml).join('')}${sp.out.length ? `<tr class="grp"><td colspan="${opts.noShares ? 6 : 9}">Not in the pool · ${sp.out.length}</td></tr>${sp.out.map(rowHtml).join('')}` : ''}</tbody>${opts.noShares ? '' : `<tfoot><tr><td>${sp.ok.length} sharing</td><td></td><td class="num">${sp.hrs.toFixed(2)}</td><td></td><td class="num">${sp.pts.toFixed(2)}</td><td class="num">${$(sp.t.card)}</td><td class="num">${sp.needsCash ? '—' : $(sp.t.cash)}</td><td class="num">${$(sp.pool)}</td><td></td></tr></tfoot>`}</table></div>${!locked ? (S.addLine && S.addLine.l === l ? addLineForm(l) : `<div>${btn('Add a missing shift', act('line-add', [l, i]), 'ghost', 'plus', { sm: 1 })}</div>`) : ''}`;
+    return `<div class="op-table-wrap"><table class="op-table tips-t"><thead><tr><th>Employee</th><th>Position</th><th class="num">Approved hours</th><th class="num">Weight</th><th class="num">Points</th>${opts.noShares ? '' : '<th class="num">Card share</th><th class="num">Cash share</th><th class="num">Total</th>'}<th class="num" title="Cash an Employee declared as received directly stays theirs; shown for the record">Declared, kept</th></tr></thead><tbody>${sp.ok.map(rowHtml).join('')}${sp.out.length ? `<tr class="grp"><td colspan="${opts.noShares ? 6 : 9}">Not in the pool · ${sp.out.length}</td></tr>${sp.out.map(rowHtml).join('')}` : ''}</tbody>${opts.noShares ? '' : `<tfoot><tr><td>${sp.ok.length} sharing</td><td></td><td class="num">${sp.hrs.toFixed(2)}</td><td></td><td class="num">${sp.pts.toFixed(2)}</td><td class="num">${$(sp.t.card)}</td><td class="num">${sp.needsCash ? '—' : $(sp.t.cash)}</td><td class="num">${$(sp.pool)}</td></tr></tfoot>`}</table></div>${!locked ? (S.addLine && S.addLine.l === l ? addLineForm(l) : `<div>${btn('Add a missing shift', act('line-add', [l, i]), 'ghost', 'plus', { sm: 1 })}</div>`) : ''}`;
   }
   function addLineForm(l) {
     return `<div class="op-card" style="padding:var(--space-3) var(--space-4);display:grid;gap:var(--space-3)"><b class="h3">Add a missing shift</b><div class="g-form g-form--4"><label class="op-field"><span class="op-label">Employee</span><select class="op-input op-input--select" id="al-emp">${PEOPLE.filter(p => p.role !== 'GM' && p.role !== 'Manager').map(p => `<option value="${p.id}">${p.name}${p.locs.includes(l) ? '' : ` · covering from ${LN(p.locs[0])}`}</option>`).join('')}</select></label><label class="op-field"><span class="op-label">Position</span><select class="op-input op-input--select" id="al-pos">${Object.keys(POS).filter(x => x !== 'Manager').map(x => `<option>${x}</option>`).join('')}</select></label><label class="op-field"><span class="op-label">Hours</span><span class="op-input"><input id="al-h" inputmode="decimal" placeholder="0.0"></span></label><label class="op-field"><span class="op-label">Reason (required)</span><span class="op-input"><input id="al-r" placeholder="e.g. forgot to clock in"></span></label></div><span class="section-note">Lives only in Opsell and is audited; never written back to the time clock.</span><div class="sg-acts">${btn('Add shift', act('line-add-save', l), 'primary', null, { sm: 1 })}${btn('Cancel', act('line-add-cancel'), 'ghost', null, { sm: 1 })}</div></div>`;
@@ -535,25 +544,27 @@
   function VariantB() {
     const locs = scopeLocs();
     let main, crumb, navKey = S.page;
-    if (S.page === 'home') {
+    if (S.page === 'home') { main = dashHome(locs, false); crumb = crumbs([['Home']]);
+    } else if (S.page === 'report') { main = reportB(S.loc, S.day); crumb = crumbs([['Closing Reports', { page: 'reports' }], [`${LN(S.loc)} · ${dTitle(S.day)}`]]); navKey = 'reports'; }
+    else if (S.page === 'tipday') { main = tipsB(S.loc, S.day); crumb = crumbs([['Tip Distribution', { page: 'tips' }], [`${LN(S.loc)} · ${dTitle(S.day)}`]]); navKey = 'tips'; }
+    else { const sp = sectionPage(S.page, locs); main = sp.main; crumb = sp.crumb; }
+    return shell(navKey, crumb, ['report', 'tipday'].includes(S.page) ? '' : scopeBtn(true), main, S.page === 'home' ? 'page--home' : '');
+  }
+  function dashHome(locs, quick) {
       const prev = PREV(), spIdx = Array.from({ length: 14 }, (_, k) => prev - 13 + k);
       const sum = (f, i) => locs.reduce((s, l) => s + f(D[l][i]), 0);
       const sales = sum(d => d.sales, prev), salesW = sum(d => d.sales, prev - 7), cost = sum(d => d.cost, prev), costW = sum(d => d.cost, prev - 7), lab = cost / sales * 100, labW = costW / salesW * 100, tgt = locs.length > 1 ? 29 : TARGET[locs[0]];
       const k1 = kpi('chart-column', 'Net sales', F.money(sales), '', sparkOf(spIdx.map(i => sum(d => d.sales, i)), { compare: spIdx.map(i => sum(d => d.sales, i - 7)) }), `${deltaHtml(pctChange(sales, salesW), '%', 'done')}<span>vs last ${dTitle(prev).slice(0, 3)}</span>`, isLead() ? { page: 'sales' } : null);
       const k2 = isSS() ? kpi('timer', 'Hours', F.count(sum(d => d.hours, prev)), 'h', sparkOf(spIdx.map(i => sum(d => d.hours, i))), `<span>overtime ${sum(d => d.ot, prev).toFixed(1)} h</span>`) : kpi('timer', 'Labor % of sales', lab.toFixed(1), '%', sparkOf(spIdx.map(i => +(sum(d => d.cost, i) / sum(d => d.sales, i) * 100).toFixed(1)), { color: lab > tgt + OVER ? 'var(--warning-text)' : undefined }), `${deltaHtml(lab - labW, 'pts', lab > tgt + OVER ? 'warning' : null)}<span>vs last ${dTitle(prev).slice(0, 3)} · target ${tgt}%</span>`, { page: 'sales' });
       const k3 = kpi('clipboard-check', 'Closing Report', `${locs.filter(l => !['draft', 'overdue'].includes(crState(l, LAST))).length}`, `of ${locs.length} in`, `<span style="display:flex;gap:4px">${locs.map(l => O.cell('closingReport', crState(l, LAST), { size: 'sm', title: `${LN(l)} · ${O.STATUS.closingReport[crState(l, LAST)].label}` })).join('')}</span>`, `<span>${dTitle(LAST)} · ${S.clock === 'closing' ? 'due tomorrow 10:00' : 'due 10:00'}</span>`, { page: 'reports' });
-      const k4 = isLead() ? kpi('hand-coins', 'Tip Pool', $(locs.reduce((s, l) => s + D[l][prev].card, 0) + locs.reduce((s, l) => s + (tip(l, prev).cash || 0), 0)), '', sparkOf(spIdx.map(i => locs.reduce((s, l) => s + D[l][i].card, 0))), `<span>${dTitle(prev)} · ${(n => n ? `${n} to finalize` : 'all finalized')(locs.filter(l => tipState(l, prev) === 'draft').length)}${locs.some(l => tip(l, prev).cash == null) ? ' · cash not counted' : ''}</span>`, { page: 'tips' }) : kpi('users', 'Guests', F.count(sum(d => d.guests, prev)), '', sparkOf(spIdx.map(i => sum(d => d.guests, i))), `${deltaHtml(pctChange(sum(d => d.guests, prev), sum(d => d.guests, prev - 7)), '%', 'done')}<span>vs last ${dTitle(prev).slice(0, 3)}</span>`);
+      const k4 = isLead() ? kpi('hand-coins', 'Tip Pool', $(locs.reduce((s, l) => s + (S.variant === 'D' ? splitD(l, prev).pool : D[l][prev].card + (tip(l, prev).cash || 0)), 0)), '', sparkOf(spIdx.map(i => locs.reduce((s, l) => s + D[l][i].card, 0))), `<span>${dTitle(prev)} · ${(n => n ? `${n} to finalize` : 'all finalized')(locs.filter(l => tipState(l, prev) === 'draft').length)}${S.variant !== 'D' && locs.some(l => tip(l, prev).cash == null) ? ' · cash not counted' : S.variant === 'D' ? ' · from Toast' : ''}</span>`, { page: 'tips' }) : kpi('users', 'Guests', F.count(sum(d => d.guests, prev)), '', sparkOf(spIdx.map(i => sum(d => d.guests, i))), `${deltaHtml(pctChange(sum(d => d.guests, prev), sum(d => d.guests, prev - 7)), '%', 'done')}<span>vs last ${dTitle(prev).slice(0, 3)}</span>`);
       const due = dueItems(locs);
-      const attn = `<div class="op-card" style="overflow:hidden"><div class="cardh"><span class="t"><b class="h3">Needs attention</b><span class="op-count">${due.length}</span></span>${isLead() ? `<span style="display:flex;gap:4px">${btn('HR Flag', act('flag-new'), 'ghost', 'plus', { sm: 1 })}${btn('Write-up', act('wu-new'), 'ghost', 'plus', { sm: 1 })}</span>` : ''}</div>${due.map(dueRow).join('') || '<div class="empty-note">Nothing needs attention.</div>'}</div>`;
+      const attn = `<div class="op-card" style="overflow:hidden"><div class="cardh"><span class="t"><b class="h3">Needs attention</b><span class="op-count">${due.length}</span></span>${isLead() && !quick ? `<span style="display:flex;gap:4px">${btn('HR Flag', act('flag-new'), 'ghost', 'plus', { sm: 1 })}${btn('Write-up', act('wu-new'), 'ghost', 'plus', { sm: 1 })}</span>` : ''}</div>${due.map(dueRow).join('') || '<div class="empty-note">Nothing needs attention.</div>'}</div>`;
       const c1 = chartCard('Net sales', 'Last 14 Business Days · dashed = same weekday, week before', el => O.charts.line(el, { labels: spIdx.map(i => String(dCol(i)[1])), tipLabels: spIdx.map(dTitle), height: 168, legend: false, yFormat: v => F.money(v, { compact: true }), series: [{ name: 'Net sales', values: spIdx.map(i => sum(d => d.sales, i)), color: 'var(--chart-current)', area: true }, { name: 'Week before', values: spIdx.map(i => sum(d => d.sales, i - 7)), color: 'var(--chart-prior)', dashed: true }], onClick: k => set({ drawer: { l: locs[0], i: spIdx[k] } }) }));
       const c2 = isSS() ? chartCard('Hours by Business Day', 'Last 14 Business Days', el => O.charts.line(el, { labels: spIdx.map(i => String(dCol(i)[1])), tipLabels: spIdx.map(dTitle), height: 168, legend: false, yFormat: v => Math.round(v) + ' h', series: [{ name: 'Hours', values: spIdx.map(i => sum(d => d.hours, i)), color: 'var(--chart-current)' }] })) : chartCard('Labor % by Business Day', `Last 14 Business Days · target ${tgt}%`, el => O.charts.line(el, { labels: spIdx.map(i => String(dCol(i)[1])), tipLabels: spIdx.map(dTitle), height: 168, legend: false, target: tgt, yFormat: v => F.pct(v, 0), series: [{ name: 'Labor %', values: spIdx.map(i => +(sum(d => d.cost, i) / sum(d => d.sales, i) * 100).toFixed(1)), color: 'var(--chart-current)' }], onClick: k => set({ drawer: { l: locs[0], i: spIdx[k] } }) }));
-      main = pageHead(greet(), [`${S.clock === 'morning' ? 'Yesterday' : 'Last closed Business Day'}, ${dTitle(prev)}`, locs.length > 1 ? `${locs.length} Locations` : LN(locs[0])]) + `<div class="g-kpi">${k1}${k2}${k3}${k4}</div><div class="g-home">${attn}<div class="stack">${c1}${c2}</div></div>`;
-      crumb = crumbs([['Home']]);
-    } else if (S.page === 'report') { main = reportB(S.loc, S.day); crumb = crumbs([['Closing Reports', { page: 'reports' }], [`${LN(S.loc)} · ${dTitle(S.day)}`]]); navKey = 'reports'; }
-    else if (S.page === 'tipday') { main = tipsB(S.loc, S.day); crumb = crumbs([['Tip Distribution', { page: 'tips' }], [`${LN(S.loc)} · ${dTitle(S.day)}`]]); navKey = 'tips'; }
-    else { const sp = sectionPage(S.page, locs); main = sp.main; crumb = sp.crumb; }
-    return shell(navKey, crumb, ['report', 'tipday'].includes(S.page) ? '' : scopeBtn(true), main, S.page === 'home' ? 'page--home' : '');
+      return pageHead(greet(), [`${S.clock === 'morning' ? 'Yesterday' : 'Last closed Business Day'}, ${dTitle(prev)}`, locs.length > 1 ? `${locs.length} Locations` : LN(locs[0])]) + `<div class="g-kpi">${k1}${k2}${k3}${k4}</div><div class="g-home">${attn}<div class="stack">${quick ? quickCard(locs) : ''}${c1}${c2}</div></div>`;
   }
+  const quickCard = locs => `<div class="op-card quick"><b class="h3">Quick actions</b>${[btn('Add a Closing Note', act('open-report', [locs[0], LAST]), 'secondary', 'pen-line')].concat(isLead() ? [btn('Raise an HR Flag', act('flag-new'), 'secondary', 'flag'), btn('Start a Write-up', act('wu-new'), 'secondary', 'file-pen-line')] : []).join('')}</div>`;
   function reportB(l, i) {
     const r = crView(l, i), st = crState(l, i), can = editable(l, i);
     const later = r.pending && r.author === me().id && r.pending.some(s => s.status === 'pending') ? alert('warning', 'sparkles', `${r.pending.filter(s => s.status === 'pending').length} HR Flag suggestions wait for you`, 'The AI check timed out when you submitted.', btn('Review now', act('later-review', [l, i]), 'secondary', null, { sm: 1 })) : '';
@@ -606,6 +617,82 @@
     return `<div class="person-pop op-card"><div class="op-emp">${O.avatar(p.name, 32)}<span class="who"><b>${p.name}</b><span>${p.role} · ${p.pos} · ${p.locs.map(LN).join(', ')}</span></span>${btn('', go({ person: null }), 'ghost', 'x', { sm: 1 })}</div>${isLead() && below(p.id) ? `<span class="tert" style="font-size:12px">${fl} open HR Flag${fl === 1 ? '' : 's'} · ${wu} Write-up${wu === 1 ? '' : 's'} on file</span>` : ''}<div class="pp-acts">${canF ? btn('Raise an HR Flag', act('flag-new', { emp: p.id }), 'secondary', 'flag', { sm: 1 }) : ''}${canW ? btn('Start a Write-up', act('wu-new', { emp: p.id }), 'secondary', 'file-pen-line', { sm: 1 }) : ''}${!canF && !canW ? '<span class="tert" style="font-size:12px">No discipline actions for your Role.</span>' : ''}</div></div>`;
   }
 
+  /* ════════════════ Variant D: the founder's pick after A–C ════════════════
+     Home: B's dashboard plus A's Quick actions. Closing Report: B's page with C's single notes card; one composer, Opsell
+     files each Closing Note under a section and the writer can move it. Tip Distribution: B's table, filled from Harri hours;
+     card and cash tips come from Toast plus an Additional tips field; Generate tips fills the shares; covering Employees
+     can be added by hand; hours can be refreshed from Harri; new hires share from their 5th day worked. */
+  function VariantD() {
+    const locs = scopeLocs();
+    let main, crumb, navKey = S.page;
+    if (S.page === 'home') { main = dashHome(locs, true); crumb = crumbs([['Home']]); }
+    else if (S.page === 'report') { main = reportD(S.loc, S.day); crumb = crumbs([['Closing Reports', { page: 'reports' }], [`${LN(S.loc)} · ${dTitle(S.day)}`]]); navKey = 'reports'; }
+    else if (S.page === 'tipday') { main = tipsD(S.loc, S.day); crumb = crumbs([['Tip Distribution', { page: 'tips' }], [`${LN(S.loc)} · ${dTitle(S.day)}`]]); navKey = 'tips'; }
+    else { const sp = sectionPage(S.page, locs); main = sp.main; crumb = sp.crumb; }
+    return shell(navKey, crumb, ['report', 'tipday'].includes(S.page) ? '' : scopeBtn(true), main, S.page === 'home' ? 'page--home' : '');
+  }
+
+  // Faked section sorting: the real one is the same AI call that suggests HR Flags (or a cheap one of its own)
+  const SEC_KEYS = {
+    Staffing: /\b(late|call[- ]?outs?|called out|shifts?|covered|cover(ing)?|staff\w*|overtime|breaks?|schedul\w*|swapp\w*|train\w*|shadow\w*|no[- ]show|left early|sick)\b/gi,
+    Guests: /\b(guests?|customers?|complain\w*|comp(ed|ped)?|covers|wait|reviews?|rush|school group|refund\w*|regulars?)\b/gi,
+    'Facility & Equipment': /\b(machines?|oven|walk-in|hvac|fridge|freezer|doors?|leak\w*|repair\w*|tech|broke\w*|plumb\w*|ice|gasket|floor|lights?|heat\w*|work order)\b/gi,
+    'Product & Inventory': /\b(sold out|waste|deliver\w*|stock|inventory|bake|orders?|cases?|milk|croissants?|bread|loaves|pastr\w*|ran out|short by|buns?)\b/gi
+  };
+  const classify = text => { let best = 'Other', n = 0; Object.entries(SEC_KEYS).forEach(([s, re]) => { const m = (text.match(re) || []).length; if (m > n) { n = m; best = s; } }); return best; };
+  function noteLineD(n, l, i) {
+    const mine = n.by === me().id, can = mine && editable(l, i);
+    if (S.editNote === n.id) return noteLine(n, l, i);
+    const move = can ? `<label class="mv" title="Move to another section">${I('arrow-up-down', 12)}<select data-move="${n.id}" aria-label="Section">${SECTIONS.map(s => `<option ${s === n.sec ? 'selected' : ''}>${s}</option>`).join('')}</select></label>` : '';
+    return `<li class="cn${mine ? ' mine' : ''}"><p><span class="cn-by">[${PN(n.by)}]</span>: ${esc(n.text)}${n.ai ? ` <span class="ai-tag" title="Opsell filed this note under ${n.sec}">${I('sparkles', 12)}filed by Opsell</span>` : ''}</p>${can ? `<span class="cn-acts">${move}${btn('', act('note-edit', n.id), 'ghost', 'pen-line', { sm: 1, title: 'Edit your Closing Note' })}${btn('', act('note-del', n.id), 'ghost', 'trash-2', { sm: 1, title: 'Delete your Closing Note' })}</span>` : (editable(l, i) ? `<span class="cn-lock" title="Only ${PN(n.by)} can edit or delete this Closing Note">${I('lock', 12)}</span>` : '')}</li>`;
+  }
+  function reportD(l, i) {
+    const r = crView(l, i), st = crState(l, i), can = editable(l, i);
+    SECTIONS.forEach(s => r.notes[s].forEach(n => { n.sec = s; }));
+    const later = r.pending && r.author === me().id && r.pending.some(s => s.status === 'pending') ? alert('warning', 'sparkles', `${r.pending.filter(s => s.status === 'pending').length} HR Flag suggestions wait for you`, 'The AI check timed out when you submitted.', btn('Review now', act('later-review', [l, i]), 'secondary', null, { sm: 1 })) : '';
+    const acts = can ? btn('Submit', act('submit-start', [l, i]), 'primary', 'send') : (me().role === 'GM' && !['draft', 'overdue'].includes(st) ? btn('Amend', act('toast', 'Amendment: new version with reason; out of this prototype'), 'secondary', 'pen-line') : '');
+    const days = `<span class="stepper">${btn('', go({ day: i - 1 }), 'secondary', 'chevron-left', { sm: 1 })}${btn('', go({ day: i + 1 }), 'secondary', 'chevron-right', { sm: 1, disabled: i >= LAST })}</span>`;
+    const log = SECTIONS.map(s => r.notes[s].length || r.photos[s].length ? `<div class="log-sec"><span class="log-h">${s}</span><ul class="cns">${r.notes[s].map(n => noteLineD(n, l, i)).join('')}</ul>${photosHtml(r, s, false)}</div>` : `<div class="log-sec empty"><span class="log-h">${s}</span><span class="tert">Nothing noted</span></div>`).join('');
+    const filing = (r.filing || []).map(n => `<div class="filing">${I('sparkles', 14)}<span><span class="cn-by">[${PN(n.by)}]</span>: ${esc(n.text)}</span><span class="tert">Filing…</span></div>`).join('');
+    const comp = can ? `<div class="composer-d"><div class="composer"><span class="cn-by tert">[${me().name}]:</span><div class="op-input op-input--area"><textarea id="cmp-d" rows="2" placeholder="Write a Closing Note. Opsell files it under the right section." data-enter="note-add-d"></textarea>${S.dPhoto ? `<span class="ph">${I('camera', 16)}<span>${S.dPhoto}</span></span>` : ''}</div><span class="cmp-btns">${btn('', act('photo-add-d'), 'ghost', 'camera', { sm: 1, title: 'Attach a photo to this note' })}${btn('Add', act('note-add-d'), 'primary', null, { sm: 1 })}</span></div><span class="section-note">Enter adds the note, Shift+Enter starts a new line. Opsell files it under Staffing, Guests, Facility & Equipment, Product & Inventory or Other; move your own note if it guessed wrong.</span></div>` : '';
+    const ws = writersOf(r);
+    const card = `<section class="op-card wcol"><div class="wcol-h"><b class="h3">Closing Notes</b><span class="tert" style="font-size:12px">${noteCount(r)} by ${ws.length} writer${ws.length === 1 ? '' : 's'}</span><span class="writers">${ws.map(id => O.avatar(PN(id), 22)).join('')}</span></div><div class="wcol-b"><div class="log">${log}</div>${filing}</div>${comp}</section>`;
+    return pageHead(`Closing Report · ${dTitle(i)}`, [LN(l), 'Business Day ends 4:00 am'], days + acts) + reportHeader(l, i) + later + `<div class="g-21"><div class="stack">${card}</div><div class="stack sticky-col">${figures(l, i)}</div></div>`;
+  }
+
+  const SRC_CASH = { 'mass-90': 11250, 'court-90': 9840 }; // cash tips rung into Toast on Friday
+  const srcCash = (l, i) => SRC_CASH[`${l}-${i}`] != null ? SRC_CASH[`${l}-${i}`] : tip(l, i).cash || 0;
+  const shortWhy = r => r.kind === 'policy' ? 'Position not eligible' : P(r.emp).role === 'GM' || P(r.emp).role === 'Manager' ? P(r.emp).role : /Massachusetts/.test(r.why) ? 'Senior-sup who ran the shift, MA' : 'back-of-house';
+  function splitD(l, i) {
+    const t = tip(l, i), pol = POLICY[l];
+    const rows = t.lines.map(x => { const e = elig(x, l), h = hoursOf(x), w = pol.weights[x.pos] || 0, n = dayNo(x.emp, i), wait = e.ok && n < WAIT; return Object.assign({}, x, { h, w, ok: e.ok && !wait, why: e.why, kind: e.kind, wait: wait ? n : 0, pts: e.ok && !wait ? h * w : 0 }); });
+    const ok = rows.filter(r => r.ok), cash = srcCash(l, i), extra = t.extra || 0;
+    const cs = shares(t.card, ok), ks = shares(cash, ok), xs = shares(extra, ok);
+    rows.forEach(r => { r.cardS = r.ok ? cs[r.id] : 0; r.cashS = r.ok ? ks[r.id] : 0; r.otherS = r.ok ? xs[r.id] : 0; r.total = r.cardS + r.cashS + r.otherS; });
+    const sig = JSON.stringify([t.card, cash, extra, ok.map(r => [r.id, r.h, r.w])]);
+    if (t.state === 'finalized' && t.genSig == null) t.genSig = sig;
+    return { t, rows, listed: rows.filter(r => r.ok || r.wait || r.kind === 'data'), hidden: rows.filter(r => !r.ok && !r.wait && r.kind !== 'data'), ok, cash, extra, pool: t.card + cash + extra, pts: ok.reduce((s, r) => s + r.pts, 0), hrs: ok.reduce((s, r) => s + r.h, 0), sig, generated: t.genSig != null, stale: t.genSig != null && t.genSig !== sig };
+  }
+  function tipsD(l, i) {
+    if (tipState(l, i) === 'pending') return pageHead(`Tip Distribution · ${dTitle(i)}`, [LN(l)]) + notYet(l, i);
+    const sp = splitD(l, i), t = sp.t, fin = t.state === 'finalized', show = fin || (sp.generated && !sp.stale), locked = fin || !isLead();
+    const acts = fin ? '' : btn('Refresh hours from Harri', act('tips-refresh', [l, i]), 'secondary', 'refresh-cw') + (show ? btn(`Finalize ${$(sp.pool)}`, act('finalize-d', [l, i]), 'primary', 'lock', { disabled: !sp.pts }) : btn(sp.stale ? 'Generate tips again' : 'Generate tips', act('tips-generate', [l, i]), 'primary', 'coins', { disabled: !sp.pts, title: sp.pts ? '' : 'Nobody eligible worked: add the missing shift first' }));
+    const status = fin ? finalizedNote({ t, pool: sp.pool }) : `${O.chip('tipDistribution', 'draft')}<span class="tert" style="font-size:13px">Hours from Harri, synced ${t.synced || '07:55'} · sales and tips from Toast, synced 04:05${sp.stale ? '' : show ? ' · tips generated' : ''}</span>`;
+    const extra = fin ? `<b>${$(sp.extra)}</b><span class="tert">${esc(t.extraNote || 'None')}</span>` : `<label class="cash"><span class="op-input"><span class="tert">$</span><input id="extra" data-live="extra" inputmode="decimal" placeholder="0.00" value="${t.extraRaw != null ? esc(t.extraRaw) : t.extra ? (t.extra / 100).toFixed(2) : ''}"></span></label><span class="op-input op-input--sm"><input id="extra-note" data-store="extraNote" placeholder="From (e.g. catering check)" value="${esc(t.extraNote || '')}"></span>`;
+    const cards = `<div class="pool-cards"><div class="op-card"><span class="op-kpi-h">${I('coins', 16)}Card tips</span><b>${$(t.card)}</b><span class="tert">From Toast, incl. auto-gratuities</span></div><div class="op-card"><span class="op-kpi-h">${I('banknote', 16)}Cash tips</span><b>${$(sp.cash)}</b><span class="tert">From Toast</span></div><div class="op-card"><span class="op-kpi-h">${I('plus', 16)}Additional tips</span>${extra}</div><div class="op-card"><span class="op-kpi-h">${I('hand-coins', 16)}Tip Pool</span><b>${$(sp.pool)}</b><span class="tert">${sp.hrs ? `${$(Math.round(sp.pool / sp.hrs))}/h over ${sp.hrs.toFixed(1)} h` : 'No eligible hours yet'}</span></div></div>`;
+    const cell = v => show ? $(v) : '<span class="tert">—</span>';
+    const st = r => r.wait ? `<span class="op-chip op-chip--sm" data-tone="warning">${I('hourglass', 12)}Day ${r.wait} of ${WAIT} · shares from day ${WAIT}</span>` : r.kind === 'data' ? `<span class="op-chip op-chip--sm" data-tone="info">${I('file-clock', 12)}Unapproved in Harri</span>${locked ? '' : ` <a class="lnk" ${act('hrs-edit', r.id)}>Include by hand</a>`}` : r.added ? `<span class="op-chip op-chip--sm" data-tone="info">${I('store', 12)}Covering from ${LN(r.covering)} · added by hand</span>` : r.covering ? `<span class="op-chip op-chip--sm" data-tone="quiet">${I('store', 12)}Covering from ${LN(r.covering)} · from Harri</span>` : '';
+    const row = r => `<tr class="${r.ok ? '' : 'out'}"><td><span class="op-emp">${O.avatar(PN(r.emp), 24)}<span class="who"><b>${PN(r.emp)}</b><span>${P(r.emp).role}${st(r) ? ` ${st(r)}` : ''}</span></span></span></td><td>${r.pos}</td><td class="num">${hoursCell(r, l, i, locked)}</td><td class="num">${r.w.toFixed(1)}</td><td class="num">${r.ok ? r.pts.toFixed(2) : '<span class="tert">0</span>'}</td><td class="num">${r.ok ? cell(r.cardS) : cell(0)}</td><td class="num">${r.ok ? cell(r.cashS) : cell(0)}</td>${sp.extra ? `<td class="num">${r.ok ? cell(r.otherS) : cell(0)}</td>` : ''}<td class="num" style="font-weight:600">${r.ok ? cell(r.total) : cell(0)}</td></tr>`;
+    const banner = fin ? '' : sp.stale ? alert('warning', 'refresh-cw', 'Hours or tips changed since you generated', 'Generate tips again before you finalize.') : !show ? alert('info', 'coins', 'Hours are in from Harri', 'Check them, add anyone who covered a shift, then generate tips to fill in each share.') : '';
+    const table = `<div class="op-table-wrap"><table class="op-table tips-t"><thead><tr><th>Employee</th><th>Position</th><th class="num">Hours</th><th class="num">Weight</th><th class="num">Points</th><th class="num">Card</th><th class="num">Cash</th>${sp.extra ? '<th class="num">Additional</th>' : ''}<th class="num">Total</th></tr></thead><tbody>${sp.listed.map(row).join('')}</tbody>${show ? `<tfoot><tr><td>${sp.ok.length} sharing</td><td></td><td class="num">${sp.hrs.toFixed(2)}</td><td></td><td class="num">${sp.pts.toFixed(2)}</td><td class="num">${$(t.card)}</td><td class="num">${$(sp.cash)}</td>${sp.extra ? `<td class="num">${$(sp.extra)}</td>` : ''}<td class="num">${$(sp.pool)}</td></tr></tfoot>` : ''}</table></div>`;
+    const below = `<div class="tips-below">${!locked ? (S.addLine && S.addLine.l === l ? coverForm(l) : btn('Add Employee from another Location', act('line-add', [l, i]), 'secondary', 'plus', { sm: 1 })) : ''}<span class="section-note">${sp.hidden.length ? `Not listed, they never share: ${sp.hidden.map(r => `${PN(r.emp)} (${shortWhy(r)})`).join(', ')}. ` : ''}${tipPolicyLine(l)} · new hires share from day ${WAIT} worked.</span></div>`;
+    return pageHead(`Tip Distribution · ${dTitle(i)}`, [LN(l), STATE[l]], acts) + `<div class="dayhead">${status}</div>` + (fin || STATE[l] !== 'MA' ? '' : alert('info', 'info', 'Massachusetts Location', 'State rules on when pooled tips must be paid apply. Opsell computes the split; payment and its timing stay with payroll.')) + cards + banner + table + below;
+  }
+  function coverForm(l) {
+    const others = PEOPLE.filter(p => !p.locs.includes(l) && !isLeadRole(p) && p.role !== 'Senior-sup');
+    return `<div class="op-card" style="padding:var(--space-3) var(--space-4);display:grid;gap:var(--space-3)"><b class="h3">Add Employee from another Location</b><div class="g-form g-form--4"><label class="op-field"><span class="op-label">Employee</span><select class="op-input op-input--select" id="al-emp">${others.map(p => `<option value="${p.id}">${p.name} · ${LN(p.locs[0])}</option>`).join('')}</select></label><label class="op-field"><span class="op-label">Position worked</span><select class="op-input op-input--select" id="al-pos">${Object.keys(POLICY[l].weights).map(x => `<option>${x}</option>`).join('')}</select></label><label class="op-field"><span class="op-label">Hours</span><span class="op-input"><input id="al-h" inputmode="decimal" placeholder="0.0"></span></label><label class="op-field"><span class="op-label">Reason (required)</span><span class="op-input"><input id="al-r" placeholder="e.g. clocked in at home store"></span></label></div><span class="section-note">Joins ${LN(l)}'s pool under ${LN(l)}'s Tip Policy and ${STATE[l]} rules. Stays in Opsell and is audited; never written back to Harri.</span><div class="sg-acts">${btn('Add to the Tip Distribution', act('line-add-save', l), 'primary', null, { sm: 1 })}${btn('Cancel', act('line-add-cancel'), 'ghost', null, { sm: 1 })}</div></div>`;
+  }
+
   /* ───────────── Actions ───────────── */
   const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
   let tst;
@@ -627,8 +714,8 @@
     'note-save': id => { const t = val('edit-' + id).trim(); SECTIONS.forEach(s => { Object.values(REP).forEach(r => r.notes[s].forEach(n => { if (n.id === id && t) n.text = t; })); }); set({ editNote: null }); },
     'note-del': id => { Object.values(REP).forEach(r => SECTIONS.forEach(s => { r.notes[s] = r.notes[s].filter(n => n.id !== id); })); render(); },
     'photo-add': sec => { const r = rep(S.variant === 'C' ? (myLocs().includes(S.loc) ? S.loc : myLocs()[0]) : S.loc, S.day == null ? LAST : S.day); r.photos[sec].push(`IMG_${2042 + Math.floor(Math.random() * 900)}.jpg`); toast(`Photo attached to ${sec}`); render(); },
-    'submit-start': ([l, i]) => { const r = rep(l, i); const items = extract(l, allNotes(crView(l, i)), me().id); set({ review: { l, i, items, later: false }, step: 'review', modal: S.variant === 'B' ? 'review' : null, editNote: null }); },
-    'later-review': ([l, i]) => { if (S.variant === 'C') { S.page = 'day'; S.loc = l; S.day = i; } else if (S.variant === 'A') { S.page = 'report'; S.loc = l; S.day = i; } set({ review: { l, i, items: rep(l, i).pending, later: true }, modal: S.variant === 'B' ? 'review' : null }); },
+    'submit-start': ([l, i]) => { const r = rep(l, i); const items = extract(l, allNotes(crView(l, i)), me().id); set({ review: { l, i, items, later: false }, step: 'review', modal: ['B', 'D'].includes(S.variant) ? 'review' : null, editNote: null }); },
+    'later-review': ([l, i]) => { if (S.variant === 'C') { S.page = 'day'; S.loc = l; S.day = i; } else if (S.variant === 'A') { S.page = 'report'; S.loc = l; S.day = i; } set({ review: { l, i, items: rep(l, i).pending, later: true }, modal: ['B', 'D'].includes(S.variant) ? 'review' : null }); },
     'review-cancel': () => set({ review: null, step: null, modal: null }),
     'sg-confirm': k => { S.review.items.find(s => s.k === k).status = 'confirmed'; render(); },
     'sg-dismiss': k => { S.review.items.find(s => s.k === k).status = 'dismissed'; render(); },
@@ -672,7 +759,28 @@
     'wu-new': a => set({ modal: 'wu', m: a || {}, person: null }),
     'wu-save': () => { const emp = val('wu-emp'); WRITEUPS.unshift({ id: `W-${100 + WRITEUPS.length}`, emp, loc: P(emp).locs.find(l => myLocs().includes(l)), level: val('wu-lvl').replace(' (suggested)', ''), cat: val('wu-cat'), day: Math.min(CUR(), LAST), state: 'draft', by: me().id, flags: S.m && S.m.flag ? [S.m.flag] : [] }); toast(`Write-up draft saved · private to you · ${PN(emp)}`); set({ modal: null }); },
     'wu-open': id => set({ modal: 'wud', m: { id } }), 'flag-open': id => set({ modal: 'fd', m: { id } }),
-    person: id => set({ person: S.person === id ? null : id })
+    person: id => set({ person: S.person === id ? null : id }),
+    'note-add-d': () => {
+      const el = document.getElementById('cmp-d'), text = el ? el.value.trim() : '';
+      if (!text) return;
+      const l = S.loc, i = S.day == null ? LAST : S.day, r = rep(l, i), n = note(me().id, text, { ai: true }), photo = S.dPhoto;
+      r.filing = (r.filing || []).concat(n); touch(r, l, i); el.value = ''; S.dPhoto = null; S.refocus = 'cmp-d'; render();
+      setTimeout(() => { const sec = classify(text); r.filing = r.filing.filter(x => x !== n); n.sec = sec; r.notes[sec].push(n); if (photo) r.photos[sec].push(photo); toast(`Filed under ${sec}`); render(); }, 700);
+    },
+    'photo-add-d': () => { S.dPhoto = `IMG_${2042 + Math.floor(Math.random() * 900)}.jpg`; render(); },
+    'tips-refresh': ([l, i]) => {
+      const t = tip(l, i), changes = [];
+      if (l === 'mass' && i === LAST && !t.refreshed) {
+        t.lines.forEach(x => { if (x.emp === 'rp' && x.status === 'unapproved') { x.status = 'approved'; changes.push('Ravi Patel: timesheet approved, 5.0 h'); } if (x.emp === 'km' && x.hours === 6) { x.hours = 6.25; changes.push('Kofi Mensah: 6.00 → 6.25 h'); } });
+        t.refreshed = true;
+      }
+      t.synced = nowTime();
+      toast(changes.length ? `Synced from Harri · ${changes.length} change${changes.length > 1 ? 's' : ''}: ${changes.join(' · ')}. Hours you adjusted by hand are kept.` : 'Synced from Harri · no changes');
+      render();
+    },
+    'tips-generate': ([l, i]) => { const sp = splitD(l, i); sp.t.genSig = sp.sig; toast(`Tips generated · ${$(sp.pool)} across ${sp.ok.length} Employees`); render(); },
+    'finalize-d': ([l, i]) => set({ modal: 'finD', fin: [l, i] }),
+    'finalize-d-confirm': () => { const [l, i] = S.fin, sp = splitD(l, i); if (sp.stale || !sp.generated || !sp.pts) return; Object.assign(sp.t, { state: 'finalized', by: me().id, at: nowTime(), version: sp.t.version || 1, cash: sp.cash }); toast(`Tip Distribution finalized · ${$(sp.pool)} to ${sp.ok.length} Employees · ${LN(l)} ${dTitle(i)}`); set({ modal: null, editHours: null, addLine: null }); }
   };
   function doFinalize(l, i) {
     const sp = split(l, i); if (finalizeIssues(sp).length) return;
@@ -686,6 +794,7 @@
     let h = '';
     if (S.modal === 'review' && S.review) { const rv = S.review; h += modal('review', rv.later ? `Review HR Flag suggestions · ${dTitle(rv.i)}` : `Submit Closing Report · ${dTitle(rv.i)}`, `${LN(rv.l)} · ${rv.later ? 'already submitted' : 'you become the author'}`, reviewBody(rv), btn('Back', act('review-cancel'), 'ghost') + btn(submitLabel(rv), act('submit-finish'), 'primary', 'check', { disabled: !reviewReady(rv) }), true); }
     if (S.modal === 'finalize') { const [l, i] = S.fin, sp = split(l, i); h += modal('fin', `Finalize ${LN(l)} · ${dTitle(i)}?`, 'This version locks. Only Ops or the Org Admin can reopen it, with a reason.', `<div class="kv"><span>Tip Pool</span><span>${$(sp.pool)}</span><span>Card tips</span><span>${$(sp.t.card)}</span><span>Cash jar</span><span>${$(sp.t.cash)}</span><span>Employees sharing</span><span>${sp.ok.length}</span><span>Hours in the pool</span><span>${sp.hrs.toFixed(2)}</span><span>Adjusted or added lines</span><span>${sp.rows.filter(r => r.adj).length}</span><span>Not in the pool</span><span>${sp.out.length}</span></div><span class="section-note">${tipPolicyLine(l)}</span>`, btn('Cancel', act('modal-close'), 'ghost') + btn('Finalize', act('finalize-confirm'), 'primary', 'lock')); }
+    if (S.modal === 'finD') { const [l, i] = S.fin, sp = splitD(l, i); h += modal('fin', `Finalize ${LN(l)} · ${dTitle(i)}?`, 'This version locks. Only Ops or the Org Admin can reopen it, with a reason.', `<div class="kv"><span>Card tips, Toast</span><span>${$(sp.t.card)}</span><span>Cash tips, Toast</span><span>${$(sp.cash)}</span><span>Additional tips</span><span>${$(sp.extra)}${sp.t.extraNote ? ` <span class="tert" style="font-weight:400">${esc(sp.t.extraNote)}</span>` : ''}</span><span>Tip Pool</span><span>${$(sp.pool)}</span><span>Employees sharing</span><span>${sp.ok.length}</span><span>Hours in the pool</span><span>${sp.hrs.toFixed(2)}</span><span>Lines adjusted or added by hand</span><span>${sp.rows.filter(r => r.adj).length}</span></div><span class="section-note">${tipPolicyLine(l)}</span>`, btn('Cancel', act('modal-close'), 'ghost') + btn('Finalize', act('finalize-d-confirm'), 'primary', 'lock')); }
     if (S.modal === 'flag') h += flagModal(S.m || {});
     if (S.modal === 'wu') h += wuModal(S.m || {});
     if (S.modal === 'wud') { const w = WRITEUPS.find(x => x.id === S.m.id); if (w) h += wuDetail(w); }
@@ -696,7 +805,7 @@
   }
 
   /* ───────────── Prototype bar ───────────── */
-  const VARIANTS = [['A', 'Inbox', 'Home is a to-do list; flows are full pages with steps'], ['B', 'Dashboard', 'Corporate Home anatomy; flows are pages, Submit and Finalize in modals'], ['C', 'Business Day', 'The day is the workspace: notes, tips and figures side by side']];
+  const VARIANTS = [['D', "Founder's pick", 'B Home + quick actions, one notes card filed by Opsell, tips from Toast + Generate'], ['A', 'Inbox', 'Home is a to-do list; flows are full pages with steps'], ['B', 'Dashboard', 'Corporate Home anatomy; flows are pages, Submit and Finalize in modals'], ['C', 'Business Day', 'The day is the workspace: notes, tips and figures side by side']];
   const PERSONA_LABEL = { gm: 'GM · Jordan Reyes (2 Locations)', mgr: 'Manager · Hannah Cole', ss: 'Senior-sup · Aisha Bello' };
   function protoBar() {
     const v = VARIANTS.find(x => x[0] === S.variant);
@@ -716,7 +825,7 @@
     const kept = {}; document.querySelectorAll('input[id], textarea[id]').forEach(el => { if (/^(cmp-|edit-|fl-text|mf-text|al-)/.test(el.id)) kept[el.id] = el.value; });
     const ae = document.activeElement, focusId = S.refocus || (ae && ae.id), sel = ae && ae.selectionStart != null ? [ae.selectionStart, ae.selectionEnd] : null; S.refocus = null;
     const scroll = document.querySelector('.scroll'), y = scroll ? scroll.scrollTop : 0, key = S.variant + S.page + S.loc + S.day + S.persona + S.step + S.tipStep, keep = render.lastKey === key;
-    document.getElementById('app').innerHTML = ({ A: VariantA, B: VariantB, C: VariantC })[S.variant]();
+    document.getElementById('app').innerHTML = ({ A: VariantA, B: VariantB, C: VariantC, D: VariantD })[S.variant]();
     document.getElementById('layer').innerHTML = layer();
     document.getElementById('proto').innerHTML = protoBar();
     post.forEach(fn => fn());
@@ -743,13 +852,19 @@
   });
   document.addEventListener('keydown', e => {
     const t = e.target;
-    if (e.key === 'Enter' && t.dataset && t.dataset.enter) { e.preventDefault(); ACT[t.dataset.enter](t.dataset.arg); return; }
+    if (e.key === 'Enter' && !e.shiftKey && t.dataset && t.dataset.enter) { e.preventDefault(); ACT[t.dataset.enter](t.dataset.arg); return; }
     if (e.key === 'Enter' && t.id === 'hrs-v' || e.key === 'Enter' && t.id === 'hrs-r') { e.preventDefault(); ACT['hrs-save'](S.editHours); return; }
     if (t.closest('input, textarea, select, [contenteditable]')) return;
     if (e.key === 'ArrowLeft') cycle(-1); else if (e.key === 'ArrowRight') cycle(1); else if (e.key === 'Escape') set({ modal: null, drawer: null, scopeOpen: false, pop: false, person: null, editNote: null, editHours: null });
   });
   document.addEventListener('input', e => {
     const t = e.target;
+    if (t.dataset.store === 'extraNote') tip(S.loc, S.day == null ? LAST : S.day).extraNote = t.value;
+    if (t.dataset.live === 'extra') {
+      const n = parseFloat(t.value.replace(/[$,]/g, '')), tp = tip(S.loc, S.day == null ? LAST : S.day);
+      tp.extra = t.value.trim() === '' || isNaN(n) ? 0 : Math.round(n * 100); tp.extraRaw = t.value;
+      clearTimeout(document.cashT); document.cashT = setTimeout(render, 350);
+    }
     if (t.dataset.live === 'cash') {
       const v = t.value.trim(), n = parseFloat(v.replace(/[$,]/g, ''));
       const l = S.variant === 'C' ? (myLocs().includes(S.loc) ? S.loc : myLocs()[0]) : S.loc, tp = tip(l, S.day == null ? LAST : S.day);
@@ -761,13 +876,14 @@
     const t = e.target;
     if (t.dataset.set) { const patch = { [t.dataset.set]: t.value }; if (t.dataset.set === 'persona') Object.assign(patch, { page: S.variant === 'C' ? 'day' : 'home', scope: 'all', loc: 'mass', day: null, review: null, modal: null, person: null }); if (t.dataset.set === 'clock') Object.assign(patch, { review: null, modal: null }); set(patch); }
     if (t.dataset.toggle) set({ [t.dataset.toggle]: t.checked });
+    if (t.dataset.move) { Object.values(REP).forEach(r => SECTIONS.forEach(sec => { const k = r.notes[sec].findIndex(n => n.id === t.dataset.move); if (k >= 0) { const [n] = r.notes[sec].splice(k, 1); n.sec = t.value; n.ai = false; r.notes[t.value].push(n); } })); toast(`Moved to ${t.value}`); render(); }
     if (t.dataset.live === 'wu-emp') { S.m = Object.assign({}, S.m, { emp: t.value }); render(); }
   });
   document.addEventListener('toggle', e => { if (e.target.dataset && e.target.dataset.open) S[e.target.dataset.open] = e.target.open; }, true);
   window.addEventListener('hashchange', () => { const v = location.hash.slice(1).toUpperCase(); if (VARIANTS.some(x => x[0] === v) && v !== S.variant) set({ variant: v, page: v === 'C' ? 'day' : 'home', review: null, modal: null }); });
 
   const h = location.hash.slice(1).toUpperCase(), q = new URLSearchParams(location.search);
-  S.variant = VARIANTS.some(x => x[0] === h) ? h : VARIANTS.some(x => x[0] === q.get('variant')) ? q.get('variant') : 'A';
+  S.variant = VARIANTS.some(x => x[0] === h) ? h : VARIANTS.some(x => x[0] === q.get('variant')) ? q.get('variant') : 'D';
   if (S.variant === 'C') S.page = 'day';
   try { Object.assign(S, JSON.parse(q.get('state') || '{}')); } catch (e) { /* ?state= is a local screenshot aid only */ }
   render();
