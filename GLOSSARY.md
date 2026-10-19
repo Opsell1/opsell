@@ -70,6 +70,10 @@ _Avoid_: Closing notes (for the whole report), nightly report, sales report
 One entry in a section of a Closing Report, written by exactly one person and always shown under that person's name.
 _Avoid_: Note entry, comment, remark, log entry
 
+**Sales Channel**:
+The Opsell-defined way an order reached a Location (Counter, Own online, Delivery apps, or Catering & advance), which each Organization maps its point-of-sale order types onto.
+_Avoid_: Order source, revenue center, dining option, order type
+
 **HR Flag**:
 A record about exactly one Employee that routes an HR-relevant event to HR, either confirmed by a Closing Report's author from its notes or raised directly by a GM or Manager, and open until HR resolves it.
 _Avoid_: HR ticket, HR issue, incident
@@ -140,7 +144,11 @@ _Avoid_: Alert, message, ping
 
 **To-do**:
 An item in a user's inbox asking them to act on a specific record, which clears itself once that work is done rather than when it is read.
-_Avoid_: Task, action item, reminder
+_Avoid_: Task, action item
+
+**Reminder**:
+An item a person writes for a Location or for themselves to remember something, either a Location Reminder shared with the Location or a Personal Reminder only its writer sees; unlike a To-do, it does not clear itself when work on a record is done.
+_Avoid_: To-do, task, note
 
 **Digest**:
 A single scheduled email summarizing a user's Notifications, open To-dos and Overdue items since the previous one.
