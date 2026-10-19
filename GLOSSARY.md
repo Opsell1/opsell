@@ -12,6 +12,10 @@ _Avoid_: Tenant, company, restaurant, account
 A single physical store operated by an Organization.
 _Avoid_: Store, restaurant, branch, site
 
+**Demo Organization**:
+An Organization populated entirely with fictional people and operations for showing Opsell to prospects, which can never hold real people or connect to a real data source.
+_Avoid_: Sandbox, test tenant, trial account
+
 ## People
 
 **Employee**:
@@ -48,9 +52,17 @@ _Avoid_: Role (for the job worked), duty, job title
 A Location's operating day, ending at that Location's local cutoff rather than at midnight, so a late close still belongs to the day it started.
 _Avoid_: Calendar day, shift day, date
 
+**Go-live Business Day**:
+The first Business Day a Location runs on Opsell; Closing Reports, Tip Distributions and their deadlines start from it, and nothing earlier is ever Overdue.
+_Avoid_: Launch date, start date, cutover
+
 **Closing Report**:
-The single record a Location submits for each Business Day, combining closing notes with sales and labor figures.
-_Avoid_: Closing notes, nightly report, sales report
+The single record a Location submits for each Business Day, combining Closing Notes with sales and labor figures.
+_Avoid_: Closing notes (for the whole report), nightly report, sales report
+
+**Closing Note**:
+One entry in a section of a Closing Report, written by exactly one person and always shown under that person's name.
+_Avoid_: Note entry, comment, remark, log entry
 
 **HR Flag**:
 A record about exactly one Employee that routes an HR-relevant event to HR, either confirmed by a Closing Report's author from its notes or raised directly by a GM or Manager, and open until HR resolves it.
@@ -101,3 +113,16 @@ _Avoid_: Impersonation, admin access, login as
 **Break-glass Access**:
 Support Access that Platform Staff open without an Org Admin's grant when none can give it, with a stated reason and a second Platform Staff approval, never including Write-ups, HR Flags or Rebuttals.
 _Avoid_: Emergency override, god mode
+## Notifications
+
+**Notification**:
+A message in a user's Opsell inbox telling them that something happened on a record they can see, which they mark read rather than act on.
+_Avoid_: Alert, message, ping
+
+**To-do**:
+An item in a user's inbox asking them to act on a specific record, which clears itself once that work is done rather than when it is read.
+_Avoid_: Task, action item, reminder
+
+**Digest**:
+A single scheduled email summarizing a user's Notifications, open To-dos and Overdue items since the previous one.
+_Avoid_: Summary email, newsletter, report
