@@ -85,7 +85,7 @@ _Avoid_: Comment, appeal, dispute
 ## Tips
 
 **Tip Pool**:
-The tips a Location collects in one Business Day that are shared among its eligible Employees: card tips plus the counted cash tip jar, but not cash an Employee declares as received directly.
+The tips a Location collects in one Business Day that are shared among its eligible Employees: the card and cash tips recorded in its POS, plus any additional tips from other sources, but not cash an Employee declares as received directly.
 _Avoid_: Tip jar, tip bucket, shift tips
 
 **Tip Distribution**:
