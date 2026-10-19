@@ -94,6 +94,10 @@ _Avoid_: Comment, appeal, dispute
 The tips a Location collects in one Business Day that are shared among its eligible Employees: the card and cash tips recorded in its POS, plus any additional tips from other sources, but not cash an Employee declares as received directly.
 _Avoid_: Tip jar, tip bucket, shift tips
 
+**Additional Tips**:
+Staff tips a Location received outside its POS on a Business Day, such as a counted tip jar or a catering tip check, each recorded with its amount, whether it is cash or non-cash, and its source, and added to that day's Tip Pool.
+_Avoid_: Extra tips, cash jar, manual tips, other tips
+
 **Tip Distribution**:
 The split of one Tip Pool among the Employees eligible on that Business Day, in proportion to their hours weighted by the Position they worked.
 _Avoid_: Tip calculation, tip out, tip split
