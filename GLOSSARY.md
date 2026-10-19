@@ -15,6 +15,12 @@ _Avoid_: Store, restaurant, branch, site
 **Terminated Organization**:
 An Organization whose contract has ended, kept read-only so its Org Admins can export it for a fixed window, after which all its data is purged.
 _Avoid_: Churned, cancelled, closed, deleted Organization
+**Suspended Organization**:
+An Organization that Platform Staff have made read-only for everyone, usually for non-payment, until they reactivate it; unrelated to a suspension Write-up Level, which disciplines an Employee.
+_Avoid_: Frozen, locked, deactivated, inactive Organization
+**Demo Organization**:
+An Organization populated entirely with fictional people and operations for showing Opsell to prospects, which can never hold real people or connect to a real data source.
+_Avoid_: Sandbox, test tenant, trial account
 
 ## People
 
@@ -31,7 +37,7 @@ The Role of an Employee with no supervisory duties, who sees only their own reco
 _Avoid_: Employee (as a Role name), crew, hourly
 
 **Org Admin**:
-The role that owns an Organization's setup: its Locations, users, Role assignments, settings, and billing.
+The role that owns an Organization's setup: its Locations, users, Role assignments, and settings.
 _Avoid_: Admin, owner, super admin
 
 **Platform Staff**:
@@ -52,9 +58,17 @@ _Avoid_: Role (for the job worked), duty, job title
 A Location's operating day, ending at that Location's local cutoff rather than at midnight, so a late close still belongs to the day it started.
 _Avoid_: Calendar day, shift day, date
 
+**Go-live Business Day**:
+The first Business Day a Location runs on Opsell; Closing Reports, Tip Distributions and their deadlines start from it, and nothing earlier is ever Overdue.
+_Avoid_: Launch date, start date, cutover
+
 **Closing Report**:
-The single record a Location submits for each Business Day, combining closing notes with sales and labor figures.
-_Avoid_: Closing notes, nightly report, sales report
+The single record a Location submits for each Business Day, combining Closing Notes with sales and labor figures.
+_Avoid_: Closing notes (for the whole report), nightly report, sales report
+
+**Closing Note**:
+One entry in a section of a Closing Report, written by exactly one person and always shown under that person's name.
+_Avoid_: Note entry, comment, remark, log entry
 
 **HR Flag**:
 A record about exactly one Employee that routes an HR-relevant event to HR, either confirmed by a Closing Report's author from its notes or raised directly by a GM or Manager, and open until HR resolves it.
@@ -77,7 +91,7 @@ _Avoid_: Comment, appeal, dispute
 ## Tips
 
 **Tip Pool**:
-The tips a Location collects in one Business Day that are shared among its eligible Employees: card tips plus the counted cash tip jar, but not cash an Employee declares as received directly.
+The tips a Location collects in one Business Day that are shared among its eligible Employees: the card and cash tips recorded in its POS, plus any additional tips from other sources, but not cash an Employee declares as received directly.
 _Avoid_: Tip jar, tip bucket, shift tips
 
 **Tip Distribution**:
@@ -105,3 +119,29 @@ _Avoid_: Delete, remove, expire
 **Legal Hold**:
 A hold on everything about one Employee, or on a whole Organization, that stops every Purge until it is released, placed when a lawsuit, charge or investigation is expected.
 _Avoid_: Freeze, lock, litigation flag
+## Oversight
+
+**Audit Log**:
+The append-only record of every change to an Organization's data, and of every Platform Staff read or export, naming who did it, when, and what changed from what.
+_Avoid_: Activity feed, history, change log
+
+**Support Access**:
+A time-boxed, read-only window an Org Admin grants Platform Staff into their Organization, excluding Write-ups, HR Flags and Rebuttals unless the Org Admin includes them.
+_Avoid_: Impersonation, admin access, login as
+
+**Break-glass Access**:
+Support Access that Platform Staff open without an Org Admin's grant when none can give it, with a stated reason and a second Platform Staff approval, never including Write-ups, HR Flags or Rebuttals.
+_Avoid_: Emergency override, god mode
+## Notifications
+
+**Notification**:
+A message in a user's Opsell inbox telling them that something happened on a record they can see, which they mark read rather than act on.
+_Avoid_: Alert, message, ping
+
+**To-do**:
+An item in a user's inbox asking them to act on a specific record, which clears itself once that work is done rather than when it is read.
+_Avoid_: Task, action item, reminder
+
+**Digest**:
+A single scheduled email summarizing a user's Notifications, open To-dos and Overdue items since the previous one.
+_Avoid_: Summary email, newsletter, report
