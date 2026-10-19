@@ -85,7 +85,7 @@
   const S = {
     variant: 'A', persona: 'gm', clock: 'morning', page: 'home', loc: 'mass', day: null, scope: 'all', step: null,
     modal: null, drawer: null, pop: false, scopeOpen: false, toast: null, editNote: null, review: null, editHours: null, addLine: null,
-    person: null, composeSec: 'Staffing', mgrFlags: true, aiInjury: true, navOpen: false, mapped: false, cover: null
+    person: null, composeSec: 'Staffing', mgrFlags: true, aiInjury: true, navOpen: false, mapped: false, cover: null, addTip: null, xs: null
   };
   const me = () => P(PERSONAS[S.persona]);
   const myLocs = () => me().locs;
@@ -384,7 +384,7 @@
     kv += isE() ? tipFigsE(l, i) : `<span>Card tips</span><span>${$(d.card)}</span><span>Declared cash tips</span><span>${$(d.declared)}</span>`;
     const warn = l === 'mass' && i === LAST ? alert('info', 'file-clock', '1 timesheet unapproved', 'Ravi Patel, 5.0 h. Figures may change once it is approved.') : '';
     const top = isSS() ? '' : `<div class="top5"><b class="h3" style="font-size:13px">Top 5 by labor cost</b><table class="op-table op-table--tight"><tbody>${(l === 'mass' ? [['hc', 9.0, 0, 252], ['ab', 8.5, 0.5, 187], ['ms', 7.0, 1.3, 176], ['lt', 8.0, 0, 152], ['za', 7.5, 0, 143]] : [['rd', 8.5, 0, 238], ['oh', 8.0, 0, 176], ['tg', 7.5, 0.4, 171], ['mk', 7.0, 0, 133], ['nb', 6.5, 0, 124]]).map(r => `<tr><td>${PN(r[0])}</td><td class="num">${r[1].toFixed(1)} h</td><td class="num muted">${r[2] ? r[2].toFixed(1) + ' OT' : ''}</td><td class="num">${F.money(r[3])}</td></tr>`).join('')}</tbody></table></div>`;
-    return `<div class="op-card figs"><div class="sec-h"><b class="h3">Figures</b>${liveFig ? '<span class="op-chip op-chip--sm" data-tone="info">Live</span>' : '<span class="op-chip op-chip--sm" data-tone="quiet">Snapshot</span>'}</div><span class="section-note">${liveFig ? 'From the data source, read-only. Snapshotted when the report is submitted.' : `Snapshotted at submit, ${dTitle(i)}.`} Deltas vs ${dTitle(i - 7)}.</span>${isE() ? `<div class="kv">${netSales}</div>${chanBlock(l, i)}` : ''}<div class="kv">${kv}</div>${warn}${opts.noTop ? '' : top}${isSS() ? '<span class="section-note">Senior-sups see hours, not labor dollars.</span>' : ''}${isLead() && i <= LAST ? `<a class="op-btn op-btn--ghost op-btn--sm" ${act('open-tips', [l, i])} style="justify-self:start">${I('hand-coins', 16)}Tip Distribution · ${O.STATUS.tipDistribution[tipState(l, i) === 'pending' ? 'draft' : tipState(l, i)].label}</a>` : ''}</div>`;
+    return `<div class="op-card figs"><div class="sec-h"><b class="h3">Figures</b>${liveFig ? '<span class="op-chip op-chip--sm" data-tone="info">Live</span>' : '<span class="op-chip op-chip--sm" data-tone="quiet">Snapshot</span>'}</div><span class="section-note">${liveFig ? 'From the data source, read-only. Snapshotted when the report is submitted.' : `Snapshotted at submit, ${dTitle(i)}.`} Deltas vs ${dTitle(i - 7)}.</span>${isE() ? chanBlock(l, i) : ''}<div class="kv">${kv}</div>${warn}${opts.noTop ? '' : top}${isSS() ? '<span class="section-note">Senior-sups see hours, not labor dollars.</span>' : ''}${isLead() && i <= LAST ? `<a class="op-btn op-btn--ghost op-btn--sm" ${act('open-tips', [l, i])} style="justify-self:start">${I('hand-coins', 16)}Tip Distribution · ${O.STATUS.tipDistribution[tipState(l, i) === 'pending' ? 'draft' : tipState(l, i)].label}</a>` : ''}</div>`;
   }
   function reportHeader(l, i, noChip) {
     const r = crView(l, i), st = crState(l, i);
@@ -723,7 +723,10 @@
     'mass-90': { 'Own online': 760, 'Delivery apps': 735, apps: { 'Uber Eats': 410, DoorDash: 325 }, 'Catering & advance': 430, Unmapped: 0, orders: [['MIT Admissions, 8 dozen croissants', 'Tue, Oct 13', '7:30 am']], refund: { amt: 38.5, day: 88, ch: 'Own online' } },
     'court-90': { 'Own online': 830, 'Delivery apps': 720, apps: { 'Uber Eats': 390, DoorDash: 330 }, 'Catering & advance': 330, Unmapped: 174, orders: [['Brooklyn Law, pickup for 60', 'Mon, Oct 12', '11:30 am']] }
   };
-  // Dollars per Sales Channel; Court St's Grubhub tag appeared on Oct 10 and nobody has mapped it yet
+  // Dollars and orders per Sales Channel; Court St's Grubhub tag appeared on Oct 10 and nobody has mapped it yet
+  const APP_COLOR = { 'Uber Eats': 'var(--app-uber)', DoorDash: 'var(--app-doordash)', Grubhub: 'var(--app-grubhub)' };
+  const AVG = { Counter: 11.4, 'Own online': 19.5, 'Uber Eats': 24, DoorDash: 23, Grubhub: 22 };
+  const cnt = (amt, avg) => amt ? Math.max(1, Math.round(amt / avg)) : 0;
   function chan(l, i, mapped) {
     const s = D[l][i].sales, f = CH_FIX[`${l}-${i}`];
     let o;
@@ -732,24 +735,39 @@
       const r = k => h01(l, i, k), cat = r(1) < 0.4 ? Math.round(s * (0.05 + r(2) * 0.08)) : 0, on = Math.round(s * (0.11 + r(3) * 0.03)), del = Math.round(s * (0.1 + r(4) * 0.03)), gh = l === 'court' && i >= 84 ? Math.round(s * (0.02 + r(5) * 0.01)) : 0, ue = Math.round(del * (0.5 + r(6) * 0.1));
       o = { Counter: s - cat - on - del - gh, 'Own online': on, 'Delivery apps': del, apps: { 'Uber Eats': ue, DoorDash: del - ue }, 'Catering & advance': cat, Unmapped: gh, orders: cat ? [[null, dTitle(i - 1 - Math.floor(r(7) * 4)), null]] : [] };
     }
-    if (mapped && o.Unmapped) { o['Delivery apps'] += o.Unmapped; o.apps.Grubhub = o.Unmapped; o.Unmapped = 0; }
+    o.n = { Counter: cnt(o.Counter, AVG.Counter), 'Own online': cnt(o['Own online'], AVG['Own online']), apps: {}, 'Catering & advance': o['Catering & advance'] ? Math.max(1, o.orders.length) : 0, Unmapped: cnt(o.Unmapped, AVG.Grubhub) };
+    Object.entries(o.apps).forEach(([a, v]) => { o.n.apps[a] = cnt(v, AVG[a]); });
+    if (mapped && o.Unmapped) { o['Delivery apps'] += o.Unmapped; o.apps.Grubhub = o.Unmapped; o.n.apps.Grubhub = o.n.Unmapped; o.Unmapped = 0; o.n.Unmapped = 0; }
+    o.n['Delivery apps'] = Object.values(o.n.apps).reduce((a, b) => a + b, 0);
     return o;
   }
+  // Sales from a source Opsell does not read (e.g. NetSuite catering), added by hand before the report is submitted
+  const xsOf = (l, i) => rep(l, i).xsales || (rep(l, i).xsales = []);
+  let xid = 0;
   // A submitted Closing Report keeps the grouping it snapshotted; an open draft is live and follows the mapping
   function chanBlock(l, i) {
-    const live = ['draft', 'overdue'].includes(crState(l, i)), m = live && S.mapped, c = chan(l, i, m), p = chan(l, i - 7, m), tot = D[l][i].sales;
-    const keys = CHANNELS.concat(c.Unmapped ? ['Unmapped'] : []);
-    const sub = k => k === 'Delivery apps' ? `${Object.entries(c.apps).map(([a, v]) => `${a} ${F.money(v)}`).join(' · ')} · before the apps' commissions`
-      : k === 'Catering & advance' ? (c.orders.length ? c.orders.map(o => `${o[0] ? o[0] + ': ' : ''}ordered ${o[1]}${o[2] ? `, picked up ${o[2]}` : ''}`).join(' · ') : 'No orders picked up or delivered')
-      : k === 'Unmapped' ? `Grubhub: not mapped to a Sales Channel yet. Counts in every total; the Org Admin has a To-do to map it.${S.mapped ? ' Snapshotted before the mapping.' : ''}` : '';
-    const rows = keys.map(k => `<div class="ch-row${k === 'Unmapped' ? ' unm' : ''}"><span class="sw" style="background:${CH_COLOR[k]}"></span><span class="nm">${k === 'Unmapped' ? `${I('circle-alert', 12)}Unmapped` : k}</span><span class="v">${F.money(c[k])}</span><span class="sh">${F.pct(c[k] / tot * 100, 0)}</span><span class="dl">${p[k] ? F.delta(pctChange(c[k], p[k])) : 'new'}</span>${sub(k) ? `<span class="sub">${esc(sub(k))}</span>` : ''}</div>`).join('');
-    const rf = c.refund ? `<div class="ch-ref">${I('rotate-ccw', 12)}<span>Includes a −${F.money(c.refund.amt, { cents: true })} refund on an ${c.refund.ch} order from ${dTitle(c.refund.day)}: a refund counts on the day it happens.</span></div>` : '';
-    return `<div class="ch"><div class="ch-h"><b class="h3" style="font-size:13px">Sales by channel</b><span class="tert">share · vs ${dTitle(i - 7).slice(0, 3)}</span></div><div class="ch-bar" role="img" aria-label="Sales by channel">${keys.map(k => `<span style="flex:${c[k]};background:${CH_COLOR[k]}" title="${k} ${F.money(c[k])}"></span>`).join('')}</div>${rows}${rf}</div>`;
+    const live = ['draft', 'overdue'].includes(crState(l, i)), c = chan(l, i, live && S.mapped), xs = xsOf(l, i), can = editable(l, i);
+    const xsTot = xs.reduce((a, x) => a + x.amt, 0), tot = D[l][i].sales + xsTot, prev = D[l][i - 7].sales + xsOf(l, i - 7).reduce((a, x) => a + x.amt, 0);
+    const row = (sw, name, n, v, cls, sub) => `<div class="ch-row${cls ? ' ' + cls : ''}">${sw ? `<span class="sw" style="background:${sw}"></span>` : '<span></span>'}<span class="nm">${name}</span><span class="o">${n == null ? '' : `${F.count(n)} order${n === 1 ? '' : 's'}`}</span><span class="v">${F.money(v)}</span><span class="sh">${F.pct(v / tot * 100, 0)}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</div>`;
+    const apps = Object.entries(c.apps).filter(([, v]) => v);
+    const segs = [['Counter', c.Counter, CH_COLOR.Counter], ['Own online', c['Own online'], CH_COLOR['Own online']]].concat(apps.map(([a, v]) => [a, v, APP_COLOR[a]]), [['Catering & advance', c['Catering & advance'], CH_COLOR['Catering & advance']], ['Grubhub, unmapped', c.Unmapped, APP_COLOR.Grubhub]], xs.map(x => [x.src, x.amt, 'var(--chart-reference)'])).filter(x => x[1]);
+    const cat = c.orders.filter(o => o[1]).map(o => `Ordered ${o[1]}`).join(' · ');
+    const rows = row(CH_COLOR.Counter, 'Counter', c.n.Counter, c.Counter) + row(CH_COLOR['Own online'], 'Own online', c.n['Own online'], c['Own online'])
+      + row(null, 'Delivery apps', c.n['Delivery apps'], c['Delivery apps'], 'parent') + apps.map(([a, v]) => row(APP_COLOR[a], a, c.n.apps[a], v, 'app')).join('')
+      + row(CH_COLOR['Catering & advance'], 'Catering & advance', c.n['Catering & advance'], c['Catering & advance'], '', cat)
+      + (c.Unmapped ? row(APP_COLOR.Grubhub, `Grubhub <span class="op-chip op-chip--sm" data-tone="warning" title="Not mapped to a Sales Channel yet. Counts in every total; the Org Admin has a To-do to map it.${S.mapped ? ' Snapshotted before the mapping.' : ''}">Unmapped</span>`, c.n.Unmapped, c.Unmapped, 'unm') : '')
+      + xs.map(x => row('var(--chart-reference)', `${esc(x.src)} <span class="hand">${I('pen-line', 12)}by hand</span>${can ? `<button class="x" ${act('xs-del', x.id)} title="Remove" aria-label="Remove">${I('x', 12)}</button>` : ''}`, x.n, x.amt)).join('');
+    const f = S.xs && S.xs.l === l && S.xs.i === i ? S.xs : null;
+    const add = !can ? '' : f ? `<div class="xs-form"><span class="op-input op-input--sm"><input id="xs-src" data-xs="src" placeholder="Source" value="${esc(f.src)}" aria-label="Source"></span><span class="op-input op-input--sm"><input id="xs-n" data-xs="n" inputmode="numeric" placeholder="Orders" value="${esc(f.n)}" aria-label="Orders"></span><span class="op-input op-input--sm"><span class="tert">$</span><input id="xs-amt" data-xs="amt" data-enter="xs-save" inputmode="decimal" placeholder="0" value="${esc(f.amt)}" aria-label="Sales"></span>${btn('Add', act('xs-save'), 'primary', null, { sm: 1 })}${btn('', act('xs-cancel'), 'ghost', 'x', { sm: 1, title: 'Cancel' })}</div>`
+      : `<button class="ch-add" ${act('xs-open', [l, i])}>${I('plus', 12)}Add sales from another source, e.g. NetSuite</button>`;
+    const rf = c.refund ? `<div class="ch-ref">${I('rotate-ccw', 12)}<span>Includes a −${F.money(c.refund.amt, { cents: true })} refund from ${dTitle(c.refund.day)}</span></div>` : '';
+    return `<div class="ch"><div class="ch-total"><span class="lbl">Net sales</span><b>${F.money(tot)}</b><span class="dl">${F.delta(pctChange(tot, prev))} vs ${dTitle(i - 7).slice(0, 3)}</span></div>${xsTot ? `<span class="ch-note">Includes ${F.money(xsTot)} added by hand · Labor % uses POS sales</span>` : ''}<div class="ch-bar" role="img" aria-label="Sales by channel">${segs.map(x => `<span style="flex:${x[1]};background:${x[2]}" title="${esc(x[0])} ${F.money(x[1])}"></span>`).join('')}</div><b class="h3 ch-h">Sales by channel</b>${rows}${rf}${add}</div>`;
   }
   function chanChart(locs) {
     const idx = Array.from({ length: 7 }, (_, k) => LAST - k), per = i => locs.map(x => chan(x, i, S.mapped));
-    const keys = CHANNELS.concat(idx.some(i => per(i).some(c => c.Unmapped)) ? ['Unmapped'] : []);
-    return `<div style="margin-top:var(--space-4)">${chartCard('Sales by Sales Channel', `Last 7 Business Days · Delivery apps before commissions${keys.includes('Unmapped') ? ' · Unmapped (Grubhub at Court St) counts in every total' : ''}`, el => O.charts.stacked(el, { labelWidth: 96, rows: idx.map(i => ({ label: dTitle(i), parts: keys.map(k => per(i).reduce((s, c) => s + c[k], 0)) })), keys: keys.map(k => ({ name: k, color: CH_COLOR[k] })) }))}</div>`;
+    const appKeys = ['Uber Eats', 'DoorDash'].concat(S.mapped ? ['Grubhub'] : []), unm = !S.mapped && idx.some(i => per(i).some(c => c.Unmapped));
+    const keys = [['Counter', c => c.Counter, CH_COLOR.Counter], ['Own online', c => c['Own online'], CH_COLOR['Own online']]].concat(appKeys.map(a => [a, c => c.apps[a] || 0, APP_COLOR[a]]), [['Catering & advance', c => c['Catering & advance'], CH_COLOR['Catering & advance']]], unm ? [['Grubhub, unmapped', c => c.Unmapped, APP_COLOR.Grubhub]] : []);
+    return `<div style="margin-top:var(--space-4)">${chartCard('Sales by Sales Channel', `Last 7 Business Days · Delivery apps before commissions${unm ? ' · Grubhub at Court St is not mapped yet and counts in every total' : ''}`, el => O.charts.stacked(el, { labelWidth: 96, rows: idx.map(i => ({ label: dTitle(i), parts: keys.map(k => per(i).reduce((s, c) => s + k[1](c), 0)) })), keys: keys.map(k => ({ name: k[0], color: k[2] })) }))}</div>`;
   }
 
   /* Tip Pool sources: everything from Toast except Additional Tips. Cents. */
@@ -758,11 +776,10 @@
     const c = chan(l, i, false), f = SRC_E[`${l}-${i}`] || { autograt: Math.round(c['Catering & advance'] * 15), pickup: Math.round(c['Delivery apps'] * 2.5), courier: l === 'mass' ? Math.round(c['Own online'] * 5.5) : 0 };
     return Object.assign({ card: tip(l, i).card, cash: srcCash(l, i) }, f); // card: staff-owned card tips incl. auto-gratuities and pickup tips
   }
-  const ADDL_SRC = ['Tip jar', 'Catering', 'Handed to a manager', 'Other'];
   let aid = 0;
   function addlOf(l, i) {
     const t = tip(l, i);
-    if (!t.addl) t.addl = l === 'mass' ? [{ id: 'A' + (++aid), amt: i === LAST ? 4600 : 2000 + Math.round(h01(l, i, 9) * 40) * 100, kind: 'Cash', src: 'Tip jar', note: '' }] : [];
+    if (!t.addl) t.addl = l === 'mass' ? [{ id: 'A' + (++aid), amt: i === LAST ? 4600 : 2000 + Math.round(h01(l, i, 9) * 40) * 100, src: 'Tip jar' }] : [];
     return t.addl;
   }
   const WAIT_BLOCKED = ['MN', 'CA', 'MA'];
@@ -773,17 +790,15 @@
   LOCS.forEach(l => tip(l, LAST).lines.forEach(x => { const t = FRI_TIMES[l][x.emp]; if (t) { x.from = t[0]; x.to = t[1]; } }));
 
   function splitE(l, i) {
-    const t = tip(l, i), pol = POLICY[l], src = srcE(l, i), addl = addlOf(l, i), wd = waitDays(l);
-    const addCash = addl.filter(a => a.kind === 'Cash').reduce((s, a) => s + a.amt, 0), addCard = addl.reduce((s, a) => s + a.amt, 0) - addCash;
-    const cardPart = src.card + addCard, cashPart = src.cash + addCash;
+    const t = tip(l, i), pol = POLICY[l], src = srcE(l, i), addl = addlOf(l, i), wd = waitDays(l), addTot = addl.reduce((a, x) => a + x.amt, 0);
     const rows = t.lines.map(x => { const e = elig(x, l), h = hoursE(x), w = pol.weights[x.pos] || 0, n = dayNo(x.emp, i), wait = e.ok && wd > 0 && n <= wd; return Object.assign({}, x, { h, w, ok: e.ok && !wait, why: e.why, kind: e.kind, wait: wait ? n : 0, pts: e.ok && !wait ? h * w : 0 }); });
-    const ok = rows.filter(r => r.ok), cs = shares(cardPart, ok), ks = shares(cashPart, ok);
-    rows.forEach(r => { r.cardS = r.ok ? cs[r.id] : 0; r.cashS = r.ok ? ks[r.id] : 0; r.total = r.cardS + r.cashS; });
-    const sig = JSON.stringify([cardPart, cashPart, ok.map(r => [r.id, r.h, r.w]), t.rev || 0]);
+    const ok = rows.filter(r => r.ok), cs = shares(src.card, ok), ks = shares(src.cash, ok), xs = shares(addTot, ok);
+    rows.forEach(r => { r.cardS = r.ok ? cs[r.id] : 0; r.cashS = r.ok ? ks[r.id] : 0; r.addS = r.ok ? xs[r.id] : 0; r.total = r.cardS + r.cashS + r.addS; });
+    const sig = JSON.stringify([src.card, src.cash, addTot, ok.map(r => [r.id, r.h, r.w]), t.rev || 0]);
     if (t.state === 'finalized' && t.genE == null) t.genE = sig;
-    return { t, l, i, src, addl, addCash, addCard, cardPart, cashPart, pool: cardPart + cashPart, rows, ok, wd, dis: rows.filter(r => r.dis != null), listed: rows.filter(r => r.ok || r.wait || r.kind === 'data'), hidden: rows.filter(r => !r.ok && !r.wait && r.kind !== 'data'), pts: ok.reduce((s, r) => s + r.pts, 0), hrs: ok.reduce((s, r) => s + r.h, 0), declared: rows.reduce((s, r) => s + (r.declared || 0), 0), sig, generated: t.genE != null, stale: t.genE != null && t.genE !== sig };
+    return { t, l, i, src, addl, addTot, pool: src.card + src.cash + addTot, rows, ok, wd, dis: rows.filter(r => r.dis != null), listed: rows.filter(r => r.ok || r.wait || r.kind === 'data'), pts: ok.reduce((a, r) => a + r.pts, 0), hrs: ok.reduce((a, r) => a + r.h, 0), sig, generated: t.genE != null, stale: t.genE != null && t.genE !== sig };
   }
-  const blockersE = sp => [!sp.generated && 'Generate tips first', sp.stale && 'Shares are Out of date: generate tips again', sp.dis.length && `Settle ${sp.dis.length} disagreement${sp.dis.length > 1 ? 's' : ''} with Harri`, sp.addl.some(a => a.src === 'Other' && !a.note.trim()) && 'Add a note to the Additional Tips line from Other', !sp.pts && 'Nobody eligible worked'].filter(Boolean);
+  const blockersE = sp => [!sp.generated && 'Generate tips first', sp.stale && 'Shares are Out of date: generate tips again', sp.dis.length && `Settle ${sp.dis.length} disagreement${sp.dis.length > 1 ? 's' : ''} with Harri`, !sp.pts && 'Nobody eligible worked'].filter(Boolean);
   function tipPolicyLineE(l) {
     const p = POLICY[l], wd = waitDays(l);
     return `Tip Policy v${p.version}, effective ${p.since} (${p.by}): ${Object.entries(p.weights).map(([k, v]) => `${k} ${v.toFixed(1)}`).join(', ')} · ${p.credit} · back-of-house not eligible (${STATE[l]}) · ${WAIT_BLOCKED.includes(STATE[l]) ? `Tip Waiting Period not available in ${STATE[l]}` : wd ? `Tip Waiting Period ${wd} days: shares from day ${wd + 1} worked` : 'no Tip Waiting Period'}`;
@@ -819,13 +834,13 @@
     return shell(navKey, crumb, ['report', 'tipday'].includes(S.page) ? '' : scopeBtn(true), main, S.page === 'home' ? 'page--home' : '');
   }
   function poolCardE(sp, locked) {
-    const s = sp.src, row = (ic, label, sub, v, cls) => `<div class="pe-row${cls ? ' ' + cls : ''}">${I(ic, 16)}<span class="t"><b>${label}</b>${sub ? `<span>${sub}</span>` : ''}</span><span class="v">${v}</span></div>`;
-    const sel = (a, f, opts) => `<select class="op-input op-input--select op-input--sm" id="addl-${a.id}-${f}" data-addl="${a.id}" data-f="${f}" aria-label="${f === 'kind' ? 'Cash or Non-cash' : 'Source'}">${opts.map(o => `<option ${a[f] === o ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
-    const lines = sp.addl.map(a => locked ? row(a.kind === 'Cash' ? 'banknote' : 'coins', `${a.src} · ${a.kind}`, esc(a.note), $(a.amt)) : `<div class="pe-add"><span class="op-input op-input--sm amt"><span class="tert">$</span><input id="addl-${a.id}-amt" data-addl="${a.id}" data-f="amt" inputmode="decimal" placeholder="0.00" aria-label="Amount" value="${a.raw != null ? esc(a.raw) : a.amt ? (a.amt / 100).toFixed(2) : ''}"></span>${sel(a, 'kind', ['Cash', 'Non-cash'])}${sel(a, 'src', ADDL_SRC)}<span class="op-input op-input--sm note${a.src === 'Other' && !a.note.trim() ? ' need' : ''}"><input id="addl-${a.id}-note" data-addl="${a.id}" data-f="note" placeholder="${a.src === 'Other' ? 'Note, required for Other' : 'Note (optional)'}" aria-label="Note" value="${esc(a.note)}"></span>${btn('', act('e-addl-del', a.id), 'ghost', 'trash-2', { sm: 1, title: 'Remove this line' })}</div>`).join('');
-    const into = row('coins', 'Card tips · Toast', `Counter, Own online and Delivery apps pickup tips (DoorDash ${$(s.pickup)})`, $(s.card - s.autograt)) + row('coins', 'Auto-gratuities · Toast', 'Catering & advance orders', $(s.autograt)) + row('banknote', 'Cash tips · Toast', 'Tips on cash payments rung in the POS', $(s.cash));
-    const addH = `<div class="pe-addh"><b>Additional Tips</b><span class="tert">${sp.addl.length ? `${sp.addl.length} line${sp.addl.length > 1 ? 's' : ''} · ${$(sp.addCash + sp.addCard)}` : 'None'}</span>${locked ? '' : btn('Add a line', act('e-addl-add', [sp.l, sp.i]), 'ghost', 'plus', { sm: 1 })}</div>`;
-    const out = (s.courier ? row('truck', 'Courier tips · Toast Delivery Services', 'Belong to the courier ("TDS Driver"), never to staff', $(s.courier), 'muted') : '') + row('user', 'Declared cash · Harri', 'Received directly and declared at clock-out; stays with the Employee', $(sp.declared), 'muted');
-    return `<section class="op-card pool-e"><div class="pe-h"><span class="op-kpi-h">${I('hand-coins', 16)}Tip Pool</span><b class="big">${$(sp.pool)}</b><span class="tert">${sp.hrs ? `${$(Math.round(sp.pool / sp.hrs))}/h over ${sp.hrs.toFixed(2)} eligible h · ` : ''}splits as card ${$(sp.cardPart)} + cash ${$(sp.cashPart)}</span></div><div class="pe-b"><div class="pe-col"><span class="pe-k">Into the Tip Pool</span>${into}${addH}${lines}${locked ? '' : `<span class="section-note">Staff tips received outside Toast on this Business Day, like the counted tip jar or a catering tip check that arrived later. Cash lines split with cash tips, Non-cash with card tips.</span>`}</div><div class="pe-col out"><span class="pe-k">Not pooled</span>${out}<span class="section-note">${s.courier ? `Toast reports ${$(s.card + s.courier)} in card tips: ${$(s.card)} for staff and ${$(s.courier)} for couriers. ` : ''}Uber Eats courier tips never reach Toast.</span></div></div></section>`;
+    const s = sp.src, row = (ic, label, sub, v, extra) => `<div class="pe-row">${I(ic, 16)}<span class="t"><b>${label}</b>${sub ? `<span>${sub}</span>` : ''}</span><span class="v">${v}</span>${extra != null ? `<span class="x">${extra}</span>` : ''}</div>`;
+    const into = row('coins', 'Card tips · Toast', `Incl. Delivery apps pickup tips (DoorDash ${$(s.pickup)})`, $(s.card - s.autograt)) + row('coins', 'Auto-gratuities · Toast', 'Catering & advance orders', $(s.autograt)) + row('banknote', 'Cash tips · Toast', '', $(s.cash));
+    const lines = sp.addl.map(a => row('plus', esc(a.src || 'Additional tips'), 'Additional tips', $(a.amt), locked ? '' : btn('', act('e-addl-del', a.id), 'ghost', 'trash-2', { sm: 1, title: 'Remove' }))).join('');
+    const f = S.addTip && S.addTip.l === sp.l && S.addTip.i === sp.i ? S.addTip : null;
+    const add = locked ? '' : f ? `<div class="pe-form"><span class="op-input op-input--sm"><span class="tert">$</span><input id="at-amt" data-at="amt" data-enter="e-addl-save" inputmode="decimal" placeholder="0.00" value="${esc(f.amt)}" aria-label="Amount"></span><span class="op-input op-input--sm"><input id="at-src" data-at="src" data-enter="e-addl-save" placeholder="Source (optional), e.g. tip jar" value="${esc(f.src)}" aria-label="Source"></span>${btn('Add', act('e-addl-save'), 'primary', null, { sm: 1 })}${btn('Cancel', act('e-addl-cancel'), 'ghost', null, { sm: 1 })}</div>`
+      : `<div>${btn('Add additional tips', act('e-addl-add', [sp.l, sp.i]), 'secondary', 'plus', { sm: 1 })}</div>`;
+    return `<section class="op-card pool-e"><div class="pe-h"><span class="op-kpi-h">${I('hand-coins', 16)}Tip Pool</span><b class="big">${$(sp.pool)}</b><span class="tert">${sp.hrs ? `${$(Math.round(sp.pool / sp.hrs))}/h over ${sp.hrs.toFixed(2)} eligible h` : 'No eligible hours yet'}</span></div><div class="pe-col">${into}${lines}${add}</div></section>`;
   }
   function tipsE(l, i) {
     const sp = splitE(l, i), t = sp.t, fin = t.state === 'finalized', show = fin || (sp.generated && !sp.stale), locked = fin || !isLead(), blockers = blockersE(sp);
@@ -835,21 +850,22 @@
       t.harriPending && sp.generated && alert('info', 'refresh-cw', `Harri has changes since ${t.harriPending}`, 'Generated numbers never move on their own. Refresh hours to pull the changes in.', btn('Refresh hours', act('e-refresh', [l, i]), 'secondary', null, { sm: 1, disabled: t.cool })),
       sp.dis.length && alert('warning', 'arrow-right-left', `${sp.dis.length} line${sp.dis.length > 1 ? 's' : ''} disagree${sp.dis.length > 1 ? '' : 's'} with Harri`, 'Keep your hours or use Harri’s on each line below. Finalize is blocked until every one is settled.'),
       sp.stale && alert('warning', 'refresh-cw', 'Shares are Out of date', 'Hours, tips or lines changed since you generated. Generate tips again before you finalize.'),
-      !sp.generated && alert('info', 'coins', 'Hours are in from Harri', 'Check them, add Additional Tips and anyone who covered a shift, then generate tips to fill in each share.')
+      !sp.generated && alert('info', 'coins', 'Hours are in from Harri', 'Check them, add any additional tips and anyone who covered a shift, then generate tips to fill in each share.')
     ].filter(Boolean);
+    const hasAdd = sp.addTot > 0, cols = hasAdd ? 9 : 8;
     const cell = v => show ? $(v) : '<span class="tert">—</span>';
     const tag = r => r.wait ? `<span class="op-chip op-chip--sm" data-tone="warning" title="Their hours are left out of the split and the tips they earned stay in the Tip Pool. Only Ops or the Org Admin can waive it.">${I('hourglass', 12)}Waiting period: day ${r.wait} of ${sp.wd}</span>`
       : r.kind === 'data' ? `<span class="op-chip op-chip--sm" data-tone="info">${I('file-clock', 12)}Unapproved in Harri</span>${locked ? '' : ` <a class="lnk" ${act('hrs-edit', r.id)}>Include by hand</a>`}`
       : r.added ? `<span class="op-chip op-chip--sm" data-tone="info" title="Added by hand: ${esc(r.adj ? r.adj.reason : r.reason)}">${I('store', 12)}Covering from ${LN(r.covering)} · by hand</span>`
       : r.covering ? `<span class="op-chip op-chip--sm" data-tone="quiet" title="Covering Shift reported by Harri at this Location">${I('store', 12)}Covering from ${LN(r.covering)}</span>` : '';
-    const extra = r => (r.dis != null ? `<tr class="note-row"><td colspan="10"><span class="dis">${I('arrow-right-left', 12)}<span>Harri now says <b>${r.dis.toFixed(2)} h</b>, you set <b>${r.h.toFixed(2)} h</b> (${esc(r.adj ? r.adj.reason : '')})</span>${locked ? '' : btn('Keep mine', act('e-keep', r.id), 'secondary', null, { sm: 1 }) + btn('Use Harri', act('e-use', r.id), 'ghost', null, { sm: 1 })}</span></td></tr>` : '')
-      + (r.moved ? `<tr class="note-row"><td colspan="10"><span class="tert">${I('store', 12)}${r.moved.toFixed(1)} h moved to cover at ${LN(r.movedTo)}, set by ${LN(r.movedTo)} · ${fmtT(r.from)}–${fmtT(r.to)} in Harri</span></td></tr>` : '');
-    const row = r => `<tr class="${r.ok ? '' : 'out'}${r.dis != null || r.moved ? ' has-note' : ''}"><td><span class="op-emp">${O.avatar(PN(r.emp), 24)}<span class="who"><b>${PN(r.emp)}</b><span>${P(r.emp).role}${tag(r) ? ` ${tag(r)}` : ''}</span></span></span></td><td>${r.pos}</td><td class="muted">${r.from != null ? `${fmtT(r.from)}–${fmtT(r.to)}` : '<span class="tert">—</span>'}</td><td class="num">${hoursCell(r, l, i, locked || r.added)}</td><td class="num">${r.w.toFixed(1)}</td><td class="num">${r.ok ? r.pts.toFixed(2) : '<span class="tert">0</span>'}</td><td class="num">${cell(r.cardS)}</td><td class="num">${cell(r.cashS)}</td><td class="num" style="font-weight:600">${cell(r.total)}</td><td class="act">${r.added && !locked ? btn('', act('e-cover-del', r.id), 'ghost', 'trash-2', { sm: 1, title: 'Remove this Covering Shift' }) : ''}</td></tr>${extra(r)}`;
-    const table = `<div class="op-table-wrap"><table class="op-table tips-t tips-e"><thead><tr><th>Employee</th><th>Position</th><th>Shift</th><th class="num">Hours</th><th class="num">Weight</th><th class="num">Points</th><th class="num">Card</th><th class="num">Cash</th><th class="num">Total</th><th></th></tr></thead><tbody>${sp.listed.map(row).join('')}</tbody>${show ? `<tfoot><tr><td>${sp.ok.length} sharing</td><td></td><td></td><td class="num">${sp.hrs.toFixed(2)}</td><td></td><td class="num">${sp.pts.toFixed(2)}</td><td class="num">${$(sp.cardPart)}</td><td class="num">${$(sp.cashPart)}</td><td class="num">${$(sp.pool)}</td><td></td></tr></tfoot>` : ''}</table></div>`;
+    const extra = r => (r.dis != null ? `<tr class="note-row"><td colspan="${cols + 1}"><span class="dis">${I('arrow-right-left', 12)}<span>Harri now says <b>${r.dis.toFixed(2)} h</b>, you set <b>${r.h.toFixed(2)} h</b> (${esc(r.adj ? r.adj.reason : '')})</span>${locked ? '' : btn('Keep mine', act('e-keep', r.id), 'secondary', null, { sm: 1 }) + btn('Use Harri', act('e-use', r.id), 'ghost', null, { sm: 1 })}</span></td></tr>` : '')
+      + (r.moved ? `<tr class="note-row"><td colspan="${cols + 1}"><span class="tert">${I('store', 12)}${r.moved.toFixed(1)} h moved to cover at ${LN(r.movedTo)}, set by ${LN(r.movedTo)} · ${fmtT(r.from)}–${fmtT(r.to)} in Harri</span></td></tr>` : '');
+    const row = r => `<tr class="${r.ok ? '' : 'out'}${r.dis != null || r.moved ? ' has-note' : ''}"><td><span class="op-emp">${O.avatar(PN(r.emp), 24)}<span class="who"><b>${PN(r.emp)}</b><span>${P(r.emp).role}${tag(r) ? ` ${tag(r)}` : ''}</span></span></span></td><td>${r.pos}</td><td class="muted">${r.from != null ? `${fmtT(r.from)}–${fmtT(r.to)}` : '<span class="tert">—</span>'}</td><td class="num">${hoursCell(r, l, i, locked || r.added)}</td><td class="num">${r.w.toFixed(1)}</td><td class="num">${cell(r.cardS)}</td><td class="num">${cell(r.cashS)}</td>${hasAdd ? `<td class="num">${cell(r.addS)}</td>` : ''}<td class="num" style="font-weight:600">${cell(r.total)}</td><td class="act">${r.added && !locked ? btn('', act('e-cover-del', r.id), 'ghost', 'trash-2', { sm: 1, title: 'Remove this Covering Shift' }) : ''}</td></tr>${extra(r)}`;
+    const table = `<div class="op-table-wrap"><table class="op-table tips-t tips-e"><thead><tr><th>Employee</th><th>Position</th><th>Shift</th><th class="num">Hours</th><th class="num">Weight</th><th class="num">Card</th><th class="num">Cash</th>${hasAdd ? '<th class="num">Additional</th>' : ''}<th class="num">Total</th><th></th></tr></thead><tbody>${sp.listed.map(row).join('')}</tbody>${show ? `<tfoot><tr><td>${sp.ok.length} sharing</td><td></td><td></td><td class="num">${sp.hrs.toFixed(2)}</td><td></td><td class="num">${$(sp.src.card)}</td><td class="num">${$(sp.src.cash)}</td>${hasAdd ? `<td class="num">${$(sp.addTot)}</td>` : ''}<td class="num">${$(sp.pool)}</td><td></td></tr></tfoot>` : ''}</table></div>`;
     // Lines this Location's Employees worked as Covering Shifts elsewhere, once that Location finalized: read-only, paid there
-    const away = LOCS.filter(o => o !== l && tip(o, i).state === 'finalized').flatMap(o => splitE(o, i).rows.filter(r => r.covering === l && r.ok).map(r => `<div class="away-row">${O.avatar(PN(r.emp), 20)}<span><b>${PN(r.emp)}</b> · Covering at ${LN(o)}: ${r.h.toFixed(1)} h ${r.pos}, ${$(r.cardS)} card / ${$(r.cashS)} cash · set by ${LN(o)}</span></div>`)).join('');
+    const away = LOCS.filter(o => o !== l && tip(o, i).state === 'finalized').flatMap(o => splitE(o, i).rows.filter(r => r.covering === l && r.ok).map(r => `<div class="away-row">${O.avatar(PN(r.emp), 20)}<span><b>${PN(r.emp)}</b> · Covering at ${LN(o)}: ${r.h.toFixed(1)} h ${r.pos}, ${$(r.total)} · set by ${LN(o)}</span></div>`)).join('');
     const awayCard = away ? `<div class="op-card away"><b class="h3">Covering Shifts at other Locations</b>${away}<span class="section-note">Not in ${LN(l)}'s pool, totals or export; the other Location's export pays it, so each share is paid once.</span></div>` : '';
-    const below = `<div class="tips-below">${!locked ? (S.cover && S.cover.l === l ? coverFormE(l, i) : btn('Add a Covering Shift from another Location', act('e-cover', [l, i]), 'secondary', 'plus', { sm: 1 })) : ''}<span class="section-note">${sp.hidden.length ? `Not listed, they never share: ${sp.hidden.map(r => `${PN(r.emp)} (${shortWhy(r)})`).join(', ')}. ` : ''}${tipPolicyLineE(l)}.</span></div>`;
+    const below = `<div class="tips-below">${!locked ? (S.cover && S.cover.l === l ? coverFormE(l, i) : btn('Add a Covering Shift from another Location', act('e-cover', [l, i]), 'secondary', 'plus', { sm: 1 })) : ''}<span class="section-note">${tipPolicyLineE(l)}.</span></div>`;
     return pageHead(`Tip Distribution · ${dTitle(i)}`, [LN(l), STATE[l]], acts) + `<div class="dayhead">${status}</div>` + (fin || STATE[l] !== 'MA' ? '' : alert('info', 'info', 'Massachusetts Location', 'State rules on when pooled tips must be paid apply, and a Tip Waiting Period is not available. Opsell computes the split; payment and its timing stay with payroll.')) + poolCardE(sp, locked) + banners.join('') + table + awayCard + below;
   }
   const QUAL = { mk: ['Barista', 'Cashier'], nb: ['Cashier', 'Barista'], oh: ['Shift lead', 'Barista'], ab: ['Shift lead', 'Barista'], za: ['Barista', 'Cashier'], ec: ['Barista', 'Cashier'] };
@@ -872,11 +888,11 @@
   }
   function tipsListE(locs) {
     const days = Array.from({ length: 14 }, (_, k) => LAST - k);
-    return `<div class="op-table-wrap"><table class="op-table"><thead><tr><th>Business Day</th>${locs.length > 1 ? '<th>Location</th>' : ''}<th>Tip Distribution</th><th class="num">Card tips</th><th class="num">Cash tips</th><th class="num">Additional</th><th class="num">Tip Pool</th><th class="num">Courier, not pooled</th><th class="num">Sharing</th><th>Finalized by</th></tr></thead><tbody>${days.flatMap(i => locs.map(l => { const sp = splitE(l, i), ts = tipState(l, i); return `<tr ${act('open-tips', [l, i])} data-go="{}"><td style="font-weight:500">${dTitle(i)}</td>${locs.length > 1 ? `<td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td>` : ''}<td>${O.chip('tipDistribution', ts, { size: 'sm' })}${sp.stale && ts === 'draft' ? ' <span class="op-chip op-chip--sm" data-tone="warning">Out of date</span>' : ''}</td><td class="num">${$(sp.src.card)}</td><td class="num">${$(sp.src.cash)}</td><td class="num">${sp.addl.length ? $(sp.addCash + sp.addCard) : '<span class="tert">—</span>'}</td><td class="num" style="font-weight:500">${$(sp.pool)}</td><td class="num muted">${sp.src.courier ? $(sp.src.courier) : '—'}</td><td class="num">${sp.ok.length}</td><td class="muted">${sp.t.by ? `${PN(sp.t.by)} · ${sp.t.at}` : '—'}</td></tr>`; })).join('')}</tbody></table></div><p class="section-note">Pay Period Oct 5 – Oct 18 · the export keeps its card and cash columns; Additional Tips fold into them by kind. Opsell computes the split; payment runs through payroll.</p>`;
+    return `<div class="op-table-wrap"><table class="op-table"><thead><tr><th>Business Day</th>${locs.length > 1 ? '<th>Location</th>' : ''}<th>Tip Distribution</th><th class="num">Card tips</th><th class="num">Cash tips</th><th class="num">Additional</th><th class="num">Tip Pool</th><th class="num">Sharing</th><th>Finalized by</th></tr></thead><tbody>${days.flatMap(i => locs.map(l => { const sp = splitE(l, i), ts = tipState(l, i); return `<tr ${act('open-tips', [l, i])} data-go="{}"><td style="font-weight:500">${dTitle(i)}</td>${locs.length > 1 ? `<td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td>` : ''}<td>${O.chip('tipDistribution', ts, { size: 'sm' })}${sp.stale && ts === 'draft' ? ' <span class="op-chip op-chip--sm" data-tone="warning">Out of date</span>' : ''}</td><td class="num">${$(sp.src.card)}</td><td class="num">${$(sp.src.cash)}</td><td class="num">${sp.addTot ? $(sp.addTot) : '<span class="tert">—</span>'}</td><td class="num" style="font-weight:500">${$(sp.pool)}</td><td class="num">${sp.ok.length}</td><td class="muted">${sp.t.by ? `${PN(sp.t.by)} · ${sp.t.at}` : '—'}</td></tr>`; })).join('')}</tbody></table></div><p class="section-note">Pay Period Oct 5 – Oct 18. Opsell computes the split; payment runs through payroll.</p>`;
   }
   function finModalE() {
     const [l, i] = S.fin, sp = splitE(l, i), s = sp.src;
-    return modal('fin', `Finalize ${LN(l)} · ${dTitle(i)}?`, 'This version locks. Only Ops or the Org Admin can reopen it, with a reason.', `<div class="kv"><span>Card tips and auto-gratuities, Toast</span><span>${$(s.card)}</span><span>Cash tips, Toast</span><span>${$(s.cash)}</span>${sp.addl.map(a => `<span>${a.src} · ${a.kind}${a.note ? ` <span class="tert">${esc(a.note)}</span>` : ''}</span><span>${$(a.amt)}</span>`).join('')}<span>Tip Pool</span><span>${$(sp.pool)}</span><span>Employees sharing</span><span>${sp.ok.length}</span><span>Hours in the pool</span><span>${sp.hrs.toFixed(2)}</span><span>Waiting period, $0 share</span><span>${sp.rows.filter(r => r.wait).length}</span><span>Lines adjusted or added by hand</span><span>${sp.rows.filter(r => r.adj).length}</span>${s.courier ? `<span>Courier tips, not pooled</span><span class="muted">${$(s.courier)}</span>` : ''}</div><span class="section-note">${tipPolicyLineE(l)}</span>`, btn('Cancel', act('modal-close'), 'ghost') + btn('Finalize', act('e-finalize-confirm'), 'primary', 'lock'));
+    return modal('fin', `Finalize ${LN(l)} · ${dTitle(i)}?`, 'This version locks. Only Ops or the Org Admin can reopen it, with a reason.', `<div class="kv"><span>Card tips and auto-gratuities, Toast</span><span>${$(s.card)}</span><span>Cash tips, Toast</span><span>${$(s.cash)}</span>${sp.addl.map(a => `<span>${esc(a.src || 'Additional tips')}</span><span>${$(a.amt)}</span>`).join('')}<span>Tip Pool</span><span>${$(sp.pool)}</span><span>Employees sharing</span><span>${sp.ok.length}</span><span>Hours in the pool</span><span>${sp.hrs.toFixed(2)}</span><span>Waiting period, $0 share</span><span>${sp.rows.filter(r => r.wait).length}</span><span>Lines adjusted or added by hand</span><span>${sp.rows.filter(r => r.adj).length}</span></div><span class="section-note">${tipPolicyLineE(l)}</span>`, btn('Cancel', act('modal-close'), 'ghost') + btn('Finalize', act('e-finalize-confirm'), 'primary', 'lock'));
   }
 
   /* Scripted Harri edit on Mass Ave's Friday: a late approval, an untouched line changed, and an edited line changed */
@@ -909,7 +925,23 @@
     'e-use': id => { Object.values(TIP).forEach(t => t.lines.forEach(x => { if (x.id === id) { x.dis = null; x.adj = null; t.rev = (t.rev || 0) + 1; } })); toast('Using Harri’s hours · recorded in the Audit Log'); render(); },
     'e-finalize': ([l, i]) => { if (!blockersE(splitE(l, i)).length) set({ modal: 'finE', fin: [l, i] }); },
     'e-finalize-confirm': () => { const [l, i] = S.fin, sp = splitE(l, i); if (blockersE(sp).length) return; Object.assign(sp.t, { state: 'finalized', by: me().id, at: nowTime(), version: sp.t.version || 1, cash: sp.src.cash }); toast(`Tip Distribution finalized · ${$(sp.pool)} to ${sp.ok.length} Employees · ${LN(l)} ${dTitle(i)}`); set({ modal: null, editHours: null, cover: null }); },
-    'e-addl-add': ([l, i]) => { addlOf(l, i).push({ id: 'A' + (++aid), amt: 0, kind: 'Cash', src: 'Tip jar', note: '' }); S.refocus = `addl-A${aid}-amt`; render(); },
+    'e-addl-add': ([l, i]) => { S.refocus = 'at-amt'; set({ addTip: { l, i, amt: '', src: '' } }); },
+    'e-addl-cancel': () => set({ addTip: null }),
+    'e-addl-save': () => {
+      const f = S.addTip, n = parseFloat(String(f.amt).replace(/[$,]/g, ''));
+      if (!(n > 0)) { toast('Enter the amount'); render(); return; }
+      addlOf(f.l, f.i).push({ id: 'A' + (++aid), amt: Math.round(n * 100), src: f.src.trim() });
+      toast(`Additional tips added · ${$(Math.round(n * 100))}${f.src.trim() ? ` · ${f.src.trim()}` : ''}`); set({ addTip: null });
+    },
+    'xs-open': ([l, i]) => { S.refocus = 'xs-n'; set({ xs: { l, i, src: 'NetSuite', n: '', amt: '' } }); },
+    'xs-cancel': () => set({ xs: null }),
+    'xs-save': () => {
+      const f = S.xs, amt = Math.round(parseFloat(String(f.amt).replace(/[$,]/g, ''))), n = parseInt(f.n, 10);
+      if (!(amt > 0) || !f.src.trim()) { toast('Enter the source and the sales amount'); render(); return; }
+      xsOf(f.l, f.i).push({ id: 'X' + (++xid), src: f.src.trim(), n: n >= 0 ? n : null, amt, by: me().id });
+      touch(rep(f.l, f.i), f.l, f.i); toast(`${f.src.trim()} sales added · ${F.money(amt)}`); set({ xs: null });
+    },
+    'xs-del': id => { Object.values(REP).forEach(r => { if (r.xsales) r.xsales = r.xsales.filter(x => x.id !== id); }); render(); },
     'e-addl-del': id => { Object.values(TIP).forEach(t => { if (t.addl) t.addl = t.addl.filter(a => a.id !== id); }); render(); },
     'e-cover': ([l]) => { const first = coverPick(l)[0]; set({ cover: { l, emp: first.id, pos: '', start: '12:00', end: '16:00', brk: '0', reason: REASONS[0], note: '' } }); },
     'e-cover-cancel': () => set({ cover: null }),
@@ -945,13 +977,8 @@
   document.addEventListener('input', e => {
     const t = e.target;
     if (t.dataset.cv) S.cover[t.dataset.cv] = t.value;
-    if (t.dataset.addl) {
-      const a = Object.values(TIP).flatMap(x => x.addl || []).find(x => x.id === t.dataset.addl), f = t.dataset.f;
-      if (!a) return;
-      if (f === 'amt') { const n = parseFloat(t.value.replace(/[$,]/g, '')); a.amt = isNaN(n) ? 0 : Math.round(n * 100); a.raw = t.value; }
-      else a[f] = t.value;
-      clearTimeout(document.addlT); document.addlT = setTimeout(render, 350);
-    }
+    if (t.dataset.at && S.addTip) S.addTip[t.dataset.at] = t.value;
+    if (t.dataset.xs && S.xs) S.xs[t.dataset.xs] = t.value;
   });
   document.addEventListener('change', e => { const t = e.target; if (t.dataset.cv) { S.cover[t.dataset.cv] = t.value; if (t.dataset.cv === 'emp') S.cover.pos = ''; render(); } });
 

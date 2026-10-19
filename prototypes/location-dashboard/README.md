@@ -12,13 +12,15 @@ State lives in memory; reload resets it.
 Variant E is the default and keeps D's design; flip back to D (← →) to see what changed.
 In `prototype.js` it is the `Variant E` block: `VariantE`, `tipsE`, `poolCardE`, `coverFormE`, `chanBlock` and `chanChart`.
 
-- **Sales Channel** ([#45](https://github.com/Opsell1/opsell/issues/45)): the Closing Report figures gain Sales by channel (Counter, Own online, Delivery apps with each app, Catering & advance), each with share and change vs the same weekday last week.
-- Delivery apps are shown before the apps' commissions, a catering order shows when it was ordered and counts on its pickup day, and a late refund counts on the day it happens.
+- **Sales Channel** ([#45](https://github.com/Opsell1/opsell/issues/45)): the Closing Report figures lead with Net sales as the largest number, then a Sales by channel bar and one row per channel with its orders, sales and share of the day.
+- Delivery apps list each app in its own color: Uber Eats green, DoorDash red, Grubhub orange.
+- A catering order shows the day it was ordered and counts on its pickup day; a late refund counts on the day it happens.
 - Court St's Grubhub tag is **Unmapped**: it counts in every total, and the Org toggle "Org Admin maps Grubhub" moves it to Delivery apps in Sales & Labor and on open drafts, while submitted Closing Reports keep their snapshot.
+- Before submitting, anyone writing the report can **add sales from another source** (e.g. NetSuite) with an order count and an amount; it joins Net sales and the bar, while Labor % stays on POS sales.
 - Sales & Labor gains a Sales by Sales Channel chart; Home is unchanged.
-- **Tip Pool by source** ([#47](https://github.com/Opsell1/opsell/issues/47)): card tips, auto-gratuities and cash tips from Toast, plus any number of **Additional Tips** lines (amount, Cash or Non-cash, source Tip jar, Catering, Handed to a manager or Other, note required for Other).
-- Cash lines split with cash tips and Non-cash lines with card tips, so the table keeps only Card and Cash columns.
-- A "Not pooled" column shows courier tips (Toast Delivery Services at Mass Ave) and declared cash, so totals reconcile with Toast.
+- **Tip Pool by source** ([#47](https://github.com/Opsell1/opsell/issues/47)): card tips, auto-gratuities and cash tips from Toast, plus **Additional tips** added with a button as an amount and an optional source.
+- Additional tips split by hours and weight like the rest of the pool, in their own Additional column.
+- The tips table has no Points column and no list of people who never share; the Tip Policy line stays under it.
 - **Generate tips and Refresh hours** ([#48](https://github.com/Opsell1/opsell/issues/48)): the Draft exists from the start of the Business Day, so at closing time it is already open.
 - Any input change marks the shares **Out of date**; after Generate, a Harri edit only shows a "Harri has changes" banner (Mass Ave Friday simulates one 4 seconds after Generate, or from Org toggles).
 - Refresh hours updates untouched lines, and an edited line Harri changed becomes a disagreement with **Keep mine** / **Use Harri** that blocks Finalize; Refresh is disabled for a minute after.
