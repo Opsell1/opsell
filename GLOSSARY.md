@@ -15,6 +15,9 @@ _Avoid_: Store, restaurant, branch, site
 **Suspended Organization**:
 An Organization that Platform Staff have made read-only for everyone, usually for non-payment, until they reactivate it; unrelated to a suspension Write-up Level, which disciplines an Employee.
 _Avoid_: Frozen, locked, deactivated, inactive Organization
+**Demo Organization**:
+An Organization populated entirely with fictional people and operations for showing Opsell to prospects, which can never hold real people or connect to a real data source.
+_Avoid_: Sandbox, test tenant, trial account
 
 ## People
 
@@ -91,3 +94,17 @@ _Avoid_: Tip rules, tip settings
 **Pay Period**:
 The Organization's recurring payroll window (weekly, biweekly or semimonthly) that groups Tip Distributions for export to payroll.
 _Avoid_: Pay cycle, payroll week
+
+## Notifications
+
+**Notification**:
+A message in a user's Opsell inbox telling them that something happened on a record they can see, which they mark read rather than act on.
+_Avoid_: Alert, message, ping
+
+**To-do**:
+An item in a user's inbox asking them to act on a specific record, which clears itself once that work is done rather than when it is read.
+_Avoid_: Task, action item, reminder
+
+**Digest**:
+A single scheduled email summarizing a user's Notifications, open To-dos and Overdue items since the previous one.
+_Avoid_: Summary email, newsletter, report
