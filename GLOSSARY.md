@@ -12,6 +12,9 @@ _Avoid_: Tenant, company, restaurant, account
 A single physical store operated by an Organization.
 _Avoid_: Store, restaurant, branch, site
 
+**Suspended Organization**:
+An Organization that Platform Staff have made read-only for everyone, usually for non-payment, until they reactivate it; unrelated to a suspension Write-up Level, which disciplines an Employee.
+_Avoid_: Frozen, locked, deactivated, inactive Organization
 **Demo Organization**:
 An Organization populated entirely with fictional people and operations for showing Opsell to prospects, which can never hold real people or connect to a real data source.
 _Avoid_: Sandbox, test tenant, trial account
@@ -31,7 +34,7 @@ The Role of an Employee with no supervisory duties, who sees only their own reco
 _Avoid_: Employee (as a Role name), crew, hourly
 
 **Org Admin**:
-The role that owns an Organization's setup: its Locations, users, Role assignments, settings, and billing.
+The role that owns an Organization's setup: its Locations, users, Role assignments, and settings.
 _Avoid_: Admin, owner, super admin
 
 **Platform Staff**:
