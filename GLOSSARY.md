@@ -44,6 +44,10 @@ _Avoid_: Admin, owner, super admin
 Opsell's own support and operations people, who sit outside every Organization and access tenant data only through audited support access.
 _Avoid_: Admin, super admin, vendor
 
+**User**:
+A person who can sign in to Opsell, holding at most one Role in each Organization they belong to; distinct from the Employee record, which an Organization keeps whether or not the person ever signs in.
+_Avoid_: Account, login, member
+
 **Role**:
 One of the fixed, Opsell-defined sets of permissions assigned to a user within an Organization, adjustable only through per-Organization toggles.
 _Avoid_: Permission group, user type
