@@ -4,12 +4,38 @@ Throwaway prototype for [Location dashboard for GM, Manager and Senior-sup](http
 It is the visual and behavioral reference for implementing what in-store Roles see; the code itself is not production code and should be rewritten, not promoted.
 
 Run it with `npx serve prototypes/location-dashboard` (or open `index.html`).
-The bottom bar switches variant (← →), persona (GM with two Locations, Manager, Senior-sup) and clock (Friday closing vs Saturday morning).
+The bottom bar switches variant (← →; E is the default), persona (GM with two Locations, Manager, Senior-sup) and clock (Friday closing vs Saturday morning).
 State lives in memory; reload resets it.
 
-## Chosen design: variant D
+## Chosen design: variant E
 
-The founder chose **variant D** on 2026-10-18; A, B and C stay in the file only as the alternatives that were rejected.
+The founder locked in **variant E** on 2026-10-19: D's design updated with the decisions of Oct 18-19 and the founder's review of E.
+E opens by default; flip back to D (← →) to see what changed, and treat D, A, B and C as superseded alternatives.
+Where E and D disagree, E wins; D's notes below still hold for everything E does not change (Home, Closing Notes, the HR Flag review, light-touch forms).
+In `prototype.js` it is the `Variant E` block: `VariantE`, `tipsE`, `poolCardE`, `coverFormE`, `chanBlock` and `chanChart`.
+
+- **Sales Channel** ([#45](https://github.com/Opsell1/opsell/issues/45)): the Closing Report figures lead with Net sales as the largest number, then a Sales by channel bar and one row per channel with its orders, sales and share of the day.
+- Delivery apps list each app in its own color: Uber Eats green, DoorDash red, Grubhub orange.
+- A catering order shows the day it was ordered and counts on its pickup day; a late refund counts on the day it happens.
+- Court St's Grubhub tag is **Unmapped**: it counts in every total, and the Org toggle "Org Admin maps Grubhub" moves it to Delivery apps in Sales & Labor and on open drafts, while submitted Closing Reports keep their snapshot.
+- Before submitting, anyone writing the report can **add sales from another source** (e.g. NetSuite) with an order count and an amount; it joins Net sales and the bar, while Labor % stays on POS sales.
+- Sales & Labor gains a Sales by Sales Channel chart; Home is unchanged.
+- **Tip Pool by source** ([#47](https://github.com/Opsell1/opsell/issues/47)): card tips, auto-gratuities and cash tips from Toast, plus **Additional tips** added with a button as an amount and an optional source.
+- Additional tips split by hours and weight like the rest of the pool, in their own Additional column.
+- The tips table has no Points column and no list of people who never share; the Tip Policy line stays under it.
+- **Generate tips and Refresh hours** ([#48](https://github.com/Opsell1/opsell/issues/48)): the Draft exists from the start of the Business Day, so at closing time it is already open.
+- Any input change marks the shares **Out of date**; after Generate, a Harri edit only shows a "Harri has changes" banner (Mass Ave Friday simulates one 4 seconds after Generate, or from Org toggles).
+- Refresh hours updates untouched lines, and an edited line Harri changed becomes a disagreement with **Keep mine** / **Use Harri** that blocks Finalize; Refresh is disabled for a minute after.
+- **Covering Shift** ([#49](https://github.com/Opsell1/opsell/issues/49)): pick anyone in the Organization, with start and end times, break and a fixed reason; time that overlaps their home shift comes off the home line ("4.0 h moved to cover at Mass Ave") and the home GM and Managers are told.
+- Once the covered Location finalizes, the home Location sees the cover read-only under "Covering Shifts at other Locations".
+- **Tip Waiting Period** ([#51](https://github.com/Opsell1/opsell/issues/51), ADR 0008): Court St (NY) has 4 waiting days in its Tip Policy, so new hire Sofia Ruiz shows "Waiting period: day 4 of 4" with a $0 share, and Home has an FYI that she finished it.
+- Mass Ave (MA) blocks the setting, so Noah Brooks shares from his first day; in D he still waits.
+
+Try it as the GM: on Mass Ave Friday, Generate tips, wait for the Harri banner, Refresh hours, settle Lucy Tran's disagreement, add a Covering Shift for Maya Kim from 12:00 to 16:00, then open Court St Friday.
+
+## Previous pick: variant D
+
+The founder chose **variant D** on 2026-10-18 and replaced it with E on 2026-10-19; A, B and C stay in the file only as the alternatives that were rejected.
 In `prototype.js`, variant D is `VariantD`, `dashHome`, `reportD`, `tipsD`, `splitD` and `coverForm`.
 
 ### Home
@@ -39,9 +65,10 @@ In `prototype.js`, variant D is `VariantD`, `dashHome`, `reportD`, `tipsD`, `spl
 
 ## Still open
 
-Tracked on the map, see [Location dashboard for GM, Manager and Senior-sup](https://github.com/Opsell1/opsell/issues/41) for links:
+Tracked in [Tip and Closing Note details from the Location dashboard](https://github.com/Opsell1/opsell/issues/55):
 
-- whether cash an Employee declares as received directly stays out of the pool;
-- whether the 5th-day waiting period is a per-Location Tip Policy setting, off by default, and where it is legal;
 - whether a Closing Note covering two topics is split into two;
-- how an unapproved timesheet line behaves until it is approved in the source.
+- how an unapproved timesheet line behaves until it is approved in the source (E keeps D's "Unapproved in Harri" with "Include by hand").
+
+Settled since D and shown in E: declared cash never pools (ADR 0008), and the waiting period is a per-Location Tip Policy setting, 0 days by default and blocked in MN, CA and MA ([#51](https://github.com/Opsell1/opsell/issues/51)).
+Not shown: the Tip Policy notice and acknowledgment ([#62](https://github.com/Opsell1/opsell/issues/62)) and Reminders ([#58](https://github.com/Opsell1/opsell/issues/58)).

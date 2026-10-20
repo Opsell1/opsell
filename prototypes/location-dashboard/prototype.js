@@ -21,7 +21,9 @@
     banknote: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
     'list-checks': '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',
     'calendar-days': '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>',
-    'user-round': '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>'
+    'user-round': '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+    truck: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+    'arrow-right-left': '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>'
   });
 
   /* ───────────── Dates ───────────── */
@@ -65,7 +67,7 @@
     ['rp', 'Ravi Patel', 'Team Member', ['mass'], 'Cashier'], ['ms', 'Marco Silva', 'Team Member', ['mass'], 'Baker'], ['da', 'Diego Alvarez', 'Team Member', ['mass'], 'Baker'],
     ['rd', 'Rosa Diaz', 'Manager', ['court'], 'Manager'], ['oh', 'Omar Haddad', 'Senior-sup', ['court'], 'Shift lead'], ['mz', 'Ming Zhao', 'Team Member', ['court'], 'Barista'], ['nb', 'Nora Bell', 'Team Member', ['court'], 'Cashier'],
     ['mk', 'Maya Kim', 'Team Member', ['court'], 'Barista'], ['tg', 'Theo Grant', 'Team Member', ['court'], 'Baker'], ['kj', 'Kara Jensen', 'Team Member', ['court'], 'Cashier'],
-    ['nk', 'Noah Brooks', 'Team Member', ['mass'], 'Barista'],
+    ['nk', 'Noah Brooks', 'Team Member', ['mass'], 'Barista'], ['sr', 'Sofia Ruiz', 'Team Member', ['court'], 'Barista'],
     // Employees at the other three Locations, only ever seen here as people covering a shift
     ['ec', 'Emily Carter', 'Team Member', ['lake'], 'Barista'], ['gh', 'Grace Huang', 'Team Member', ['lake'], 'Cashier'], ['ds', 'Devin Shaw', 'Team Member', ['valencia'], 'Barista'], ['lm', 'Leo Martins', 'Team Member', ['lamar'], 'Cashier']
   ].map(([id, name, role, locs, pos], k) => ({ id, name, role, locs, pos, pid: 1001 + k, first: name.split(' ')[0] }));
@@ -74,7 +76,7 @@
   const PERSONAS = { gm: 'jr', mgr: 'hc', ss: 'ab' };
   const staffAt = l => PEOPLE.filter(p => p.locs.includes(l));
   // New hires: the Business Days they have worked so far. Everyone else has worked well past the waiting period.
-  const SHIFT_DAYS = { nk: [87, 88, 89, 90] }; // Noah Brooks started Tue, Oct 13
+  const SHIFT_DAYS = { nk: [87, 88, 89, 90], sr: [87, 88, 89, 90] }; // Noah Brooks (Mass Ave) and Sofia Ruiz (Court St) started Tue, Oct 13
   const WAIT = 5; // founder's bakery: tip-eligible from the 5th day worked, in a tip-eligible Position
   const dayNo = (emp, i) => SHIFT_DAYS[emp] ? SHIFT_DAYS[emp].filter(d => d <= i).length : 99;
   const worksOn = (emp, i) => !SHIFT_DAYS[emp] || SHIFT_DAYS[emp].includes(i);
@@ -83,7 +85,7 @@
   const S = {
     variant: 'A', persona: 'gm', clock: 'morning', page: 'home', loc: 'mass', day: null, scope: 'all', step: null,
     modal: null, drawer: null, pop: false, scopeOpen: false, toast: null, editNote: null, review: null, editHours: null, addLine: null,
-    person: null, composeSec: 'Staffing', mgrFlags: true, aiInjury: true, navOpen: false
+    person: null, composeSec: 'Staffing', mgrFlags: true, aiInjury: true, navOpen: false, mapped: false, cover: null, addTip: null, xs: null
   };
   const me = () => P(PERSONAS[S.persona]);
   const myLocs = () => me().locs;
@@ -215,8 +217,8 @@
 
   /* ───────────── Tip Distribution ───────────── */
   const POLICY = {
-    mass: { weights: { Barista: 1.0, Cashier: 0.9, 'Shift lead': 1.0 }, since: 'Sep 1, 2026', by: 'Marcus Lee (Ops)', credit: 'No tip credit', version: 3 },
-    court: { weights: { Barista: 1.0, Cashier: 1.0, 'Shift lead': 1.1 }, since: 'Aug 15, 2026', by: 'Marcus Lee (Ops)', credit: 'No tip credit', version: 2 }
+    mass: { weights: { Barista: 1.0, Cashier: 0.9, 'Shift lead': 1.0 }, since: 'Sep 1, 2026', by: 'Marcus Lee (Ops)', credit: 'No tip credit', version: 3, wait: 0 },
+    court: { weights: { Barista: 1.0, Cashier: 1.0, 'Shift lead': 1.1 }, since: 'Oct 1, 2026', by: 'Marcus Lee (Ops)', credit: 'No tip credit', version: 3, wait: 4 } // wait: Tip Waiting Period days (E only)
   };
   let lid = 0;
   const line = (emp, pos, hours, extra) => Object.assign({ id: 'L' + (++lid), emp, pos, hours, status: 'approved', declared: 0 }, extra || {});
@@ -232,15 +234,15 @@
   (() => {
     const m = tip('mass', LAST);
     Object.assign(m, { state: 'draft', cash: null, by: null, at: null, lines: [
-      line('za', 'Barista', 7.5, { declared: 1200 }), line('km', 'Barista', 6.0), line('lt', 'Cashier', 8.0, { declared: 800 }), line('jp', 'Cashier', 5.5),
+      line('za', 'Barista', 7.5, { declared: 1200 }), line('km', 'Barista', 6.0), line('lt', 'Cashier', 7.5, { declared: 800, adj: { hours: 8.0, reason: 'Stayed to close the register, forgot to clock out', by: 'hc' } }), line('jp', 'Cashier', 5.5),
       line('mz', 'Barista', 4.0, { covering: 'court' }), line('nk', 'Barista', 5.0), line('rp', 'Cashier', 5.0, { status: 'unapproved' }), line('ab', 'Shift lead', 8.5, { ranShift: true }),
       line('ms', 'Baker', 7.0), line('da', 'Baker', 6.5), line('hc', 'Manager', 9.0)] });
     const c = tip('court', LAST);
     Object.assign(c, { state: 'draft', cash: null, by: null, at: null, lines: [
-      line('oh', 'Shift lead', 8.0, { ranShift: true, declared: 600 }), line('mk', 'Barista', 7.0, { declared: 900 }), line('nb', 'Cashier', 6.5), line('kj', 'Cashier', 5.0), line('tg', 'Baker', 7.5), line('rd', 'Manager', 8.5)] });
+      line('oh', 'Shift lead', 8.0, { ranShift: true, declared: 600 }), line('mk', 'Barista', 7.0, { declared: 900 }), line('nb', 'Cashier', 6.5), line('kj', 'Cashier', 5.0), line('tg', 'Baker', 7.5), line('rd', 'Manager', 8.5), line('sr', 'Barista', 5.0)] });
     const th = tip('mass', LAST - 1); th.by = 'hc'; th.at = '11:02';
   })();
-  const tipState = (l, i) => i > LAST ? null : i === LAST && S.clock === 'closing' ? 'pending' : tip(l, i).state;
+  const tipState = (l, i) => i > LAST ? null : i === LAST && S.clock === 'closing' && S.variant !== 'E' ? 'pending' : tip(l, i).state;
   const hoursOf = x => x.adj ? x.adj.hours : x.hours;
   function elig(x, l) {
     const p = P(x.emp), pol = POLICY[l];
@@ -282,9 +284,10 @@
       for (let d = LAST - 13; d < LAST; d++) if (crState(l, d) === 'overdue') out.push({ sev: 0, tile: ['closingReport', 'overdue'], title: `Closing Report overdue · ${dTitle(d)}`, detail: 'Not submitted. Submit it late, or mark the Business Day closed.', loc: l, act: { kind: 'report', l, i: d }, due: 'Overdue' });
       for (let d = LAST - 6; d <= LAST; d++) { const r = rep(l, d); if (r.pending && r.pending.length && r.author === u.id && r.pending.some(s => s.status === 'pending')) out.push({ sev: 1, tile: ['hrFlag', 'open'], title: `Review ${r.pending.filter(s => s.status === 'pending').length} HR Flag suggestions · ${dTitle(d)}`, detail: 'You submitted this Closing Report; the AI check timed out, so the suggestions wait for you.', loc: l, act: { kind: 'later', l, i: d }, due: 'Today' }); }
       if (isLead()) {
-        for (let d = LAST - 6; d <= LAST; d++) { const ts = tipState(l, d); if (ts === 'draft') { const sp = split(l, d); out.push({ sev: 2, tile: ['tipDistribution', 'draft'], title: `Tip Distribution · ${dTitle(d)}`, detail: S.variant === 'D' ? `Hours in from Harri · generate tips and finalize · ${$(splitD(l, d).pool)} from Toast` : `${sp.needsCash ? 'Count the cash jar, ' : ''}check hours and finalize · card tips ${$(sp.t.card)}`, loc: l, act: { kind: 'tips', l, i: d }, due: 'Pay Period ends Oct 18' }); } }
+        for (let d = LAST - 6; d <= LAST; d++) { const ts = tipState(l, d); if (ts === 'draft') { const sp = split(l, d); out.push({ sev: 2, tile: ['tipDistribution', 'draft'], title: `Tip Distribution · ${dTitle(d)}`, detail: S.variant === 'E' ? dueTipE(l, d) : S.variant === 'D' ? `Hours in from Harri · generate tips and finalize · ${$(splitD(l, d).pool)} from Toast` : `${sp.needsCash ? 'Count the cash jar, ' : ''}check hours and finalize · card tips ${$(sp.t.card)}`, loc: l, act: { kind: 'tips', l, i: d }, due: 'Pay Period ends Oct 18' }); } }
         if (S.variant === 'D') Object.keys(SHIFT_DAYS).filter(id => P(id).locs.includes(l) && dayNo(id, LAST) === WAIT - 1).forEach(id => out.push({ sev: 3, tile: ['tipDistribution', 'draft'], title: `${PN(id)} shares tips from the next shift`, detail: `Day ${dayNo(id, LAST)} of ${WAIT} worked as ${P(id).pos} · tip-eligible from day ${WAIT} under the Tip Policy`, loc: l, act: { kind: 'tips', l, i: LAST }, due: 'Next shift' }));
-        if (S.clock === 'closing') out.push({ sev: 4, tile: ['tipDistribution', 'draft'], title: `Tip Distribution · ${dTitle(LAST)}`, detail: 'Generates automatically after the 4:00 am cutoff', loc: l, act: null, due: 'Tomorrow' });
+        if (S.variant === 'E') out.push(...dueE(l));
+        if (S.clock === 'closing' && S.variant !== 'E') out.push({ sev: 4, tile: ['tipDistribution', 'draft'], title: `Tip Distribution · ${dTitle(LAST)}`, detail: 'Generates automatically after the 4:00 am cutoff', loc: l, act: null, due: 'Tomorrow' });
         out.push(...[[l === 'mass' ? 'rp' : null]].filter(x => x[0] && tipState(l, LAST) === 'draft' && tip(l, LAST).lines.some(y => y.emp === x[0] && y.status === 'unapproved')).map(([id]) => ({ sev: 3, tile: ['dataQuality', 'unapprovedTimesheets'], title: 'Unapproved timesheet', detail: `${PN(id)} · ${dTitle(LAST)} · left out of the Tip Distribution until approved in the time clock`, loc: l, act: { kind: 'tips', l, i: LAST }, due: 'Before finalizing' })));
       }
     });
@@ -375,12 +378,13 @@
     const d = D[l][i], p = D[l][i - 7], st = crState(l, i), liveFig = ['draft', 'overdue'].includes(st);
     const dl = (a, b) => p ? `<span class="tert" style="font-weight:400"> ${F.delta(pctChange(a, b))}</span>` : '';
     const over = d.labor > TARGET[l] + OVER;
-    let kv = `<span>Net sales</span><span>${F.money(d.sales)}${dl(d.sales, p.sales)}</span><span>Guests</span><span>${F.count(d.guests)}${dl(d.guests, p.guests)}</span><span>Hours</span><span>${F.count(d.hours)}${dl(d.hours, p.hours)}</span><span>Overtime</span><span class="${d.ot > 2 ? 'bad' : ''}">${d.ot.toFixed(1)} h</span>`;
+    const netSales = `<span>Net sales</span><span>${F.money(d.sales)}${dl(d.sales, p.sales)}</span>`;
+    let kv = `${isE() ? '' : netSales}<span>Guests</span><span>${F.count(d.guests)}${dl(d.guests, p.guests)}</span><span>Hours</span><span>${F.count(d.hours)}${dl(d.hours, p.hours)}</span><span>Overtime</span><span class="${d.ot > 2 ? 'bad' : ''}">${d.ot.toFixed(1)} h</span>`;
     if (!isSS()) kv += `<span>Labor cost</span><span>${F.money(d.cost)}${dl(d.cost, p.cost)}</span><span>Labor % of sales</span><span class="${over ? 'bad' : ''}">${over ? '▲ ' : ''}${F.pct(d.labor)}<span class="tert" style="font-weight:400"> vs ${F.pct(p.labor)}</span></span>`;
-    kv += `<span>Card tips</span><span>${$(d.card)}</span><span>Declared cash tips</span><span>${$(d.declared)}</span>`;
+    kv += isE() ? tipFigsE(l, i) : `<span>Card tips</span><span>${$(d.card)}</span><span>Declared cash tips</span><span>${$(d.declared)}</span>`;
     const warn = l === 'mass' && i === LAST ? alert('info', 'file-clock', '1 timesheet unapproved', 'Ravi Patel, 5.0 h. Figures may change once it is approved.') : '';
     const top = isSS() ? '' : `<div class="top5"><b class="h3" style="font-size:13px">Top 5 by labor cost</b><table class="op-table op-table--tight"><tbody>${(l === 'mass' ? [['hc', 9.0, 0, 252], ['ab', 8.5, 0.5, 187], ['ms', 7.0, 1.3, 176], ['lt', 8.0, 0, 152], ['za', 7.5, 0, 143]] : [['rd', 8.5, 0, 238], ['oh', 8.0, 0, 176], ['tg', 7.5, 0.4, 171], ['mk', 7.0, 0, 133], ['nb', 6.5, 0, 124]]).map(r => `<tr><td>${PN(r[0])}</td><td class="num">${r[1].toFixed(1)} h</td><td class="num muted">${r[2] ? r[2].toFixed(1) + ' OT' : ''}</td><td class="num">${F.money(r[3])}</td></tr>`).join('')}</tbody></table></div>`;
-    return `<div class="op-card figs"><div class="sec-h"><b class="h3">Figures</b>${liveFig ? '<span class="op-chip op-chip--sm" data-tone="info">Live</span>' : '<span class="op-chip op-chip--sm" data-tone="quiet">Snapshot</span>'}</div><span class="section-note">${liveFig ? 'From the data source, read-only. Snapshotted when the report is submitted.' : `Snapshotted at submit, ${dTitle(i)}.`} Deltas vs ${dTitle(i - 7)}.</span><div class="kv">${kv}</div>${warn}${opts.noTop ? '' : top}${isSS() ? '<span class="section-note">Senior-sups see hours, not labor dollars.</span>' : ''}${isLead() && i <= LAST ? `<a class="op-btn op-btn--ghost op-btn--sm" ${act('open-tips', [l, i])} style="justify-self:start">${I('hand-coins', 16)}Tip Distribution · ${O.STATUS.tipDistribution[tipState(l, i) === 'pending' ? 'draft' : tipState(l, i)].label}</a>` : ''}</div>`;
+    return `<div class="op-card figs"><div class="sec-h"><b class="h3">Figures</b>${liveFig ? '<span class="op-chip op-chip--sm" data-tone="info">Live</span>' : '<span class="op-chip op-chip--sm" data-tone="quiet">Snapshot</span>'}</div><span class="section-note">${liveFig ? 'From the data source, read-only. Snapshotted when the report is submitted.' : `Snapshotted at submit, ${dTitle(i)}.`} Deltas vs ${dTitle(i - 7)}.</span>${isE() ? chanBlock(l, i) : ''}<div class="kv">${kv}</div>${warn}${opts.noTop ? '' : top}${isSS() ? '<span class="section-note">Senior-sups see hours, not labor dollars.</span>' : ''}${isLead() && i <= LAST ? `<a class="op-btn op-btn--ghost op-btn--sm" ${act('open-tips', [l, i])} style="justify-self:start">${I('hand-coins', 16)}Tip Distribution · ${O.STATUS.tipDistribution[tipState(l, i) === 'pending' ? 'draft' : tipState(l, i)].label}</a>` : ''}</div>`;
   }
   function reportHeader(l, i, noChip) {
     const r = crView(l, i), st = crState(l, i);
@@ -416,7 +420,7 @@
   function tipPolicyLine(l) { const p = POLICY[l]; return `Tip Policy v${p.version}, effective ${p.since} (${p.by}): ${Object.entries(p.weights).map(([k, v]) => `${k} ${v.toFixed(1)}`).join(', ')} · ${p.credit} · back-of-house not eligible (${STATE[l]})`; }
   function hoursCell(r, l, i, locked) {
     if (S.editHours === r.id) return `<span class="hrs-edit"><span class="op-input" style="width:76px;height:28px"><input id="hrs-v" value="${r.h}" inputmode="decimal"></span><span class="op-input" style="width:220px;height:28px"><input id="hrs-r" placeholder="Reason (required)" value="${esc(r.adj ? r.adj.reason : '')}"></span>${btn('Save', act('hrs-save', r.id), 'primary', null, { sm: 1 })}${btn('', act('hrs-cancel'), 'ghost', 'x', { sm: 1 })}</span>`;
-    const adj = r.adj ? `<span class="adj" title="Adjusted from ${r.hours.toFixed(1)} h by ${PN(r.adj.by)}: ${esc(r.adj.reason)}">${I('pen-line', 12)}${r.status === 'unapproved' || r.added ? 'by hand' : `was ${r.hours.toFixed(1)}`}</span>` : '';
+    const adj = r.adj ? `<span class="adj" title="Adjusted from ${r.hours.toFixed(2)} h by ${PN(r.adj.by)}: ${esc(r.adj.reason)}">${I('pen-line', 12)}${r.status === 'unapproved' || r.added ? 'by hand' : `was ${r.hours.toFixed(2)}`}</span>` : '';
     return locked ? `${r.h.toFixed(2)}${adj}` : `<button class="hrs-btn" ${act('hrs-edit', r.id)} title="Adjust hours (reason required)">${r.h.toFixed(2)}${I('pen-line', 12)}</button>${adj}`;
   }
   function linesTable(sp, l, i, opts) {
@@ -467,6 +471,7 @@
     return `<div class="op-table-wrap"><table class="op-table"><thead><tr><th>Business Day</th>${locs.length > 1 ? '<th>Location</th>' : ''}<th>Closing Report</th><th>Author</th><th class="num">Closing Notes</th><th>Writers</th><th class="num">Net sales</th></tr></thead><tbody>${days.flatMap(i => locs.map(l => { const r = crView(l, i), st = crState(l, i); return `<tr ${act('open-report', [l, i])} data-go="{}"><td style="font-weight:500">${dTitle(i)}</td>${locs.length > 1 ? `<td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td>` : ''}<td>${O.chip('closingReport', st, { size: 'sm' })}${r.pending && r.pending.some(s => s.status === 'pending') && r.author === me().id ? ` <span class="op-chip op-chip--sm" data-tone="warning">${I('sparkles', 12)}Review suggestions</span>` : ''}</td><td class="muted">${r.author && !['draft', 'overdue'].includes(st) ? `${PN(r.author)} · ${r.at}` : '—'}</td><td class="num">${noteCount(r)}</td><td>${writersOf(r).map(id => O.avatar(PN(id), 20)).join('')}</td><td class="num">${F.money(D[l][i].sales)}</td></tr>`; })).join('')}</tbody></table></div>`;
   }
   function tipsList(locs) {
+    if (isE()) return tipsListE(locs);
     const days = Array.from({ length: 14 }, (_, k) => LAST - k);
     return `<div class="op-table-wrap"><table class="op-table"><thead><tr><th>Business Day</th>${locs.length > 1 ? '<th>Location</th>' : ''}<th>Tip Distribution</th><th class="num">Card tips</th><th class="num">Cash jar</th><th class="num">Tip Pool</th><th class="num">Sharing</th><th>Finalized by</th></tr></thead><tbody>${days.flatMap(i => locs.map(l => { const ts = tipState(l, i); if (ts === 'pending') return `<tr><td style="font-weight:500">${dTitle(i)}</td>${locs.length > 1 ? `<td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td>` : ''}<td><span class="op-chip op-chip--sm" data-tone="quiet">${I('hourglass', 12)}After 4:00 am cutoff</span></td><td colspan="5" class="muted">The Draft generates automatically after the Business Day cutoff.</td></tr>`; const sp = split(l, i); return `<tr ${act('open-tips', [l, i])} data-go="{}"><td style="font-weight:500">${dTitle(i)}</td>${locs.length > 1 ? `<td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td>` : ''}<td>${O.chip('tipDistribution', ts, { size: 'sm' })}</td><td class="num">${$(sp.t.card)}</td><td class="num">${sp.needsCash ? '<span class="tert">not counted</span>' : $(sp.t.cash)}</td><td class="num" style="font-weight:500">${$(sp.pool)}</td><td class="num">${sp.ok.length}</td><td class="muted">${sp.t.by ? `${PN(sp.t.by)} · ${sp.t.at}` : '—'}</td></tr>`; })).join('')}</tbody></table></div><p class="section-note">Pay Period Oct 5 – Oct 18 · export after the last day is finalized. Opsell computes the split; payment runs through payroll.</p>`;
   }
@@ -481,7 +486,7 @@
   function salesPage(locs) {
     const idx = Array.from({ length: 14 }, (_, k) => LAST - 13 + k), l = locs[0];
     const sum = i => locs.reduce((s, x) => s + D[x][i].sales, 0), lab = i => { const c = locs.reduce((s, x) => s + D[x][i].cost, 0); return +(c / sum(i) * 100).toFixed(1); };
-    return `<div class="g-2">${chartCard('Net sales', 'Last 14 Business Days · dashed = week before', el => O.charts.line(el, { labels: idx.map(i => String(dCol(i)[1])), tipLabels: idx.map(dTitle), height: 200, legend: false, yFormat: v => F.money(v, { compact: true }), series: [{ name: 'Net sales', values: idx.map(sum), color: 'var(--chart-current)', area: true }, { name: 'Week before', values: idx.map(i => sum(i - 7)), color: 'var(--chart-prior)', dashed: true }] }))}${chartCard('Labor % of sales', `Last 14 Business Days · target ${locs.length > 1 ? 'per Location' : TARGET[l] + '%'}`, el => O.charts.line(el, { labels: idx.map(i => String(dCol(i)[1])), tipLabels: idx.map(dTitle), height: 200, legend: false, target: locs.length > 1 ? undefined : TARGET[l], yFormat: v => F.pct(v, 0), series: [{ name: 'Labor %', values: idx.map(lab), color: 'var(--chart-current)' }] }))}</div><p class="section-note">Same Sales & Labor section as corporate, scoped to your Locations. Not this prototype's question.</p>`;
+    return `<div class="g-2">${chartCard('Net sales', 'Last 14 Business Days · dashed = week before', el => O.charts.line(el, { labels: idx.map(i => String(dCol(i)[1])), tipLabels: idx.map(dTitle), height: 200, legend: false, yFormat: v => F.money(v, { compact: true }), series: [{ name: 'Net sales', values: idx.map(sum), color: 'var(--chart-current)', area: true }, { name: 'Week before', values: idx.map(i => sum(i - 7)), color: 'var(--chart-prior)', dashed: true }] }))}${chartCard('Labor % of sales', `Last 14 Business Days · target ${locs.length > 1 ? 'per Location' : TARGET[l] + '%'}`, el => O.charts.line(el, { labels: idx.map(i => String(dCol(i)[1])), tipLabels: idx.map(dTitle), height: 200, legend: false, target: locs.length > 1 ? undefined : TARGET[l], yFormat: v => F.pct(v, 0), series: [{ name: 'Labor %', values: idx.map(lab), color: 'var(--chart-current)' }] }))}</div>${isE() ? chanChart(locs) : ''}<p class="section-note">Same Sales & Labor section as corporate, scoped to your Locations. Not this prototype's question.</p>`;
   }
   function myRecords() {
     const u = me(), rows = [];
@@ -557,7 +562,7 @@
       const k1 = kpi('chart-column', 'Net sales', F.money(sales), '', sparkOf(spIdx.map(i => sum(d => d.sales, i)), { compare: spIdx.map(i => sum(d => d.sales, i - 7)) }), `${deltaHtml(pctChange(sales, salesW), '%', 'done')}<span>vs last ${dTitle(prev).slice(0, 3)}</span>`, isLead() ? { page: 'sales' } : null);
       const k2 = isSS() ? kpi('timer', 'Hours', F.count(sum(d => d.hours, prev)), 'h', sparkOf(spIdx.map(i => sum(d => d.hours, i))), `<span>overtime ${sum(d => d.ot, prev).toFixed(1)} h</span>`) : kpi('timer', 'Labor % of sales', lab.toFixed(1), '%', sparkOf(spIdx.map(i => +(sum(d => d.cost, i) / sum(d => d.sales, i) * 100).toFixed(1)), { color: lab > tgt + OVER ? 'var(--warning-text)' : undefined }), `${deltaHtml(lab - labW, 'pts', lab > tgt + OVER ? 'warning' : null)}<span>vs last ${dTitle(prev).slice(0, 3)} · target ${tgt}%</span>`, { page: 'sales' });
       const k3 = kpi('clipboard-check', 'Closing Report', `${locs.filter(l => !['draft', 'overdue'].includes(crState(l, LAST))).length}`, `of ${locs.length} in`, `<span style="display:flex;gap:4px">${locs.map(l => O.cell('closingReport', crState(l, LAST), { size: 'sm', title: `${LN(l)} · ${O.STATUS.closingReport[crState(l, LAST)].label}` })).join('')}</span>`, `<span>${dTitle(LAST)} · ${S.clock === 'closing' ? 'due tomorrow 10:00' : 'due 10:00'}</span>`, { page: 'reports' });
-      const k4 = isLead() ? kpi('hand-coins', 'Tip Pool', $(locs.reduce((s, l) => s + (S.variant === 'D' ? splitD(l, prev).pool : D[l][prev].card + (tip(l, prev).cash || 0)), 0)), '', sparkOf(spIdx.map(i => locs.reduce((s, l) => s + D[l][i].card, 0))), `<span>${dTitle(prev)} · ${(n => n ? `${n} to finalize` : 'all finalized')(locs.filter(l => tipState(l, prev) === 'draft').length)}${S.variant !== 'D' && locs.some(l => tip(l, prev).cash == null) ? ' · cash not counted' : S.variant === 'D' ? ' · from Toast' : ''}</span>`, { page: 'tips' }) : kpi('users', 'Guests', F.count(sum(d => d.guests, prev)), '', sparkOf(spIdx.map(i => sum(d => d.guests, i))), `${deltaHtml(pctChange(sum(d => d.guests, prev), sum(d => d.guests, prev - 7)), '%', 'done')}<span>vs last ${dTitle(prev).slice(0, 3)}</span>`);
+      const k4 = isLead() ? kpi('hand-coins', 'Tip Pool', $(locs.reduce((s, l) => s + (S.variant === 'E' ? splitE(l, prev).pool : S.variant === 'D' ? splitD(l, prev).pool : D[l][prev].card + (tip(l, prev).cash || 0)), 0)), '', sparkOf(spIdx.map(i => locs.reduce((s, l) => s + D[l][i].card, 0))), `<span>${dTitle(prev)} · ${(n => n ? `${n} to finalize` : 'all finalized')(locs.filter(l => tipState(l, prev) === 'draft').length)}${S.variant === 'E' ? '' : S.variant !== 'D' && locs.some(l => tip(l, prev).cash == null) ? ' · cash not counted' : S.variant === 'D' ? ' · from Toast' : ''}</span>`, { page: 'tips' }) : kpi('users', 'Guests', F.count(sum(d => d.guests, prev)), '', sparkOf(spIdx.map(i => sum(d => d.guests, i))), `${deltaHtml(pctChange(sum(d => d.guests, prev), sum(d => d.guests, prev - 7)), '%', 'done')}<span>vs last ${dTitle(prev).slice(0, 3)}</span>`);
       const due = dueItems(locs);
       const attn = `<div class="op-card" style="overflow:hidden"><div class="cardh"><span class="t"><b class="h3">Needs attention</b><span class="op-count">${due.length}</span></span>${isLead() && !quick ? `<span style="display:flex;gap:4px">${btn('HR Flag', act('flag-new'), 'ghost', 'plus', { sm: 1 })}${btn('Write-up', act('wu-new'), 'ghost', 'plus', { sm: 1 })}</span>` : ''}</div>${due.map(dueRow).join('') || '<div class="empty-note">Nothing needs attention.</div>'}</div>`;
       const c1 = chartCard('Net sales', 'Last 14 Business Days · dashed = same weekday, week before', el => O.charts.line(el, { labels: spIdx.map(i => String(dCol(i)[1])), tipLabels: spIdx.map(dTitle), height: 168, legend: false, yFormat: v => F.money(v, { compact: true }), series: [{ name: 'Net sales', values: spIdx.map(i => sum(d => d.sales, i)), color: 'var(--chart-current)', area: true }, { name: 'Week before', values: spIdx.map(i => sum(d => d.sales, i - 7)), color: 'var(--chart-prior)', dashed: true }], onClick: k => set({ drawer: { l: locs[0], i: spIdx[k] } }) }));
@@ -693,6 +698,290 @@
     return `<div class="op-card" style="padding:var(--space-3) var(--space-4);display:grid;gap:var(--space-3)"><b class="h3">Add Employee from another Location</b><div class="g-form g-form--4"><label class="op-field"><span class="op-label">Employee</span><select class="op-input op-input--select" id="al-emp">${others.map(p => `<option value="${p.id}">${p.name} · ${LN(p.locs[0])}</option>`).join('')}</select></label><label class="op-field"><span class="op-label">Position worked</span><select class="op-input op-input--select" id="al-pos">${Object.keys(POLICY[l].weights).map(x => `<option>${x}</option>`).join('')}</select></label><label class="op-field"><span class="op-label">Hours</span><span class="op-input"><input id="al-h" inputmode="decimal" placeholder="0.0"></span></label><label class="op-field"><span class="op-label">Reason (required)</span><span class="op-input"><input id="al-r" placeholder="e.g. clocked in at home store"></span></label></div><span class="section-note">Joins ${LN(l)}'s pool under ${LN(l)}'s Tip Policy and ${STATE[l]} rules. Stays in Opsell and is audited; never written back to Harri.</span><div class="sg-acts">${btn('Add to the Tip Distribution', act('line-add-save', l), 'primary', null, { sm: 1 })}${btn('Cancel', act('line-add-cancel'), 'ghost', null, { sm: 1 })}</div></div>`;
   }
 
+  /* ════════════════ Variant E: D updated with the decisions of Oct 18-19 ════════════════
+     Same Home and Closing Report as D, plus:
+     - Sales Channel (#45): Closing Report figures gain Sales by channel (Counter, Own online, Delivery apps, Catering &
+       advance, plus Unmapped); Sales & Labor gains a channel chart; Home is unchanged. Courier tips never pool.
+     - Tip Pool sources (#47): card tips, auto-gratuities and cash tips from Toast plus any number of Additional Tips
+       lines (amount, Cash or Non-cash, fixed source, note); Cash lines split with cash, Non-cash with card.
+     - Generate tips and Refresh hours (#48): any input change makes the shares Out of date; after Generate, Harri
+       changes only show a banner; an edited line Harri changed is a disagreement (Keep mine / Use Harri) that blocks Finalize.
+       The Draft exists from the start of the Business Day, so a closer can finish tips that night.
+     - Covering Shift (#49): pick anyone in the Organization, with start and end times and a fixed reason; time that
+       overlaps their home shift comes off the home line; the home Location sees the finalized cover read-only.
+     - Tip Waiting Period (#51, ADR 0008): per-Location Tip Policy days, blocked in MN, CA and MA; a waiting Employee's
+       hours are left out and their share is $0 while their tips stay in the pool; FYI when they become eligible. */
+  const isE = () => S.variant === 'E';
+  const h01 = (l, i, k) => { const x = Math.sin(i * 12.9898 + k * 78.233 + (l === 'mass' ? 11 : 23) * 37.719) * 43758.5453; return x - Math.floor(x); };
+  const fmtT = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+  const toMin = v => { const [h, m] = String(v || '').split(':').map(Number); return h * 60 + (m || 0); };
+
+  /* Sales Channels */
+  const CHANNELS = ['Counter', 'Own online', 'Delivery apps', 'Catering & advance'];
+  const CH_COLOR = { Counter: 'var(--seq-5)', 'Own online': 'var(--seq-4)', 'Delivery apps': 'var(--seq-3)', 'Catering & advance': 'var(--seq-2)', Unmapped: 'var(--chart-reference)' };
+  const CH_FIX = {
+    'mass-90': { 'Own online': 760, 'Delivery apps': 735, apps: { 'Uber Eats': 410, DoorDash: 325 }, 'Catering & advance': 430, Unmapped: 0, orders: [['MIT Admissions, 8 dozen croissants', 'Tue, Oct 13', '7:30 am']], refund: { amt: 38.5, day: 88, ch: 'Own online' } },
+    'court-90': { 'Own online': 830, 'Delivery apps': 720, apps: { 'Uber Eats': 390, DoorDash: 330 }, 'Catering & advance': 330, Unmapped: 174, orders: [['Brooklyn Law, pickup for 60', 'Mon, Oct 12', '11:30 am']] }
+  };
+  // Dollars and orders per Sales Channel; Court St's Grubhub tag appeared on Oct 10 and nobody has mapped it yet
+  const APP_COLOR = { 'Uber Eats': 'var(--app-uber)', DoorDash: 'var(--app-doordash)', Grubhub: 'var(--app-grubhub)' };
+  const AVG = { Counter: 11.4, 'Own online': 19.5, 'Uber Eats': 24, DoorDash: 23, Grubhub: 22 };
+  const cnt = (amt, avg) => amt ? Math.max(1, Math.round(amt / avg)) : 0;
+  function chan(l, i, mapped) {
+    const s = D[l][i].sales, f = CH_FIX[`${l}-${i}`];
+    let o;
+    if (f) { o = Object.assign({}, f, { apps: Object.assign({}, f.apps) }); o.Counter = s - o['Own online'] - o['Delivery apps'] - o['Catering & advance'] - o.Unmapped; }
+    else {
+      const r = k => h01(l, i, k), cat = r(1) < 0.4 ? Math.round(s * (0.05 + r(2) * 0.08)) : 0, on = Math.round(s * (0.11 + r(3) * 0.03)), del = Math.round(s * (0.1 + r(4) * 0.03)), gh = l === 'court' && i >= 84 ? Math.round(s * (0.02 + r(5) * 0.01)) : 0, ue = Math.round(del * (0.5 + r(6) * 0.1));
+      o = { Counter: s - cat - on - del - gh, 'Own online': on, 'Delivery apps': del, apps: { 'Uber Eats': ue, DoorDash: del - ue }, 'Catering & advance': cat, Unmapped: gh, orders: cat ? [[null, dTitle(i - 1 - Math.floor(r(7) * 4)), null]] : [] };
+    }
+    o.n = { Counter: cnt(o.Counter, AVG.Counter), 'Own online': cnt(o['Own online'], AVG['Own online']), apps: {}, 'Catering & advance': o['Catering & advance'] ? Math.max(1, o.orders.length) : 0, Unmapped: cnt(o.Unmapped, AVG.Grubhub) };
+    Object.entries(o.apps).forEach(([a, v]) => { o.n.apps[a] = cnt(v, AVG[a]); });
+    if (mapped && o.Unmapped) { o['Delivery apps'] += o.Unmapped; o.apps.Grubhub = o.Unmapped; o.n.apps.Grubhub = o.n.Unmapped; o.Unmapped = 0; o.n.Unmapped = 0; }
+    o.n['Delivery apps'] = Object.values(o.n.apps).reduce((a, b) => a + b, 0);
+    return o;
+  }
+  // Sales from a source Opsell does not read (e.g. NetSuite catering), added by hand before the report is submitted
+  const xsOf = (l, i) => rep(l, i).xsales || (rep(l, i).xsales = []);
+  let xid = 0;
+  // A submitted Closing Report keeps the grouping it snapshotted; an open draft is live and follows the mapping
+  function chanBlock(l, i) {
+    const live = ['draft', 'overdue'].includes(crState(l, i)), c = chan(l, i, live && S.mapped), xs = xsOf(l, i), can = editable(l, i);
+    const xsTot = xs.reduce((a, x) => a + x.amt, 0), tot = D[l][i].sales + xsTot, prev = D[l][i - 7].sales + xsOf(l, i - 7).reduce((a, x) => a + x.amt, 0);
+    const row = (sw, name, n, v, cls, sub) => `<div class="ch-row${cls ? ' ' + cls : ''}">${sw ? `<span class="sw" style="background:${sw}"></span>` : '<span></span>'}<span class="nm">${name}</span><span class="o">${n == null ? '' : `${F.count(n)} order${n === 1 ? '' : 's'}`}</span><span class="v">${F.money(v)}</span><span class="sh">${F.pct(v / tot * 100, 0)}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</div>`;
+    const apps = Object.entries(c.apps).filter(([, v]) => v);
+    const segs = [['Counter', c.Counter, CH_COLOR.Counter], ['Own online', c['Own online'], CH_COLOR['Own online']]].concat(apps.map(([a, v]) => [a, v, APP_COLOR[a]]), [['Catering & advance', c['Catering & advance'], CH_COLOR['Catering & advance']], ['Grubhub, unmapped', c.Unmapped, APP_COLOR.Grubhub]], xs.map(x => [x.src, x.amt, 'var(--chart-reference)'])).filter(x => x[1]);
+    const cat = c.orders.filter(o => o[1]).map(o => `Ordered ${o[1]}`).join(' · ');
+    const rows = row(CH_COLOR.Counter, 'Counter', c.n.Counter, c.Counter) + row(CH_COLOR['Own online'], 'Own online', c.n['Own online'], c['Own online'])
+      + row(null, 'Delivery apps', c.n['Delivery apps'], c['Delivery apps'], 'parent') + apps.map(([a, v]) => row(APP_COLOR[a], a, c.n.apps[a], v, 'app')).join('')
+      + row(CH_COLOR['Catering & advance'], 'Catering & advance', c.n['Catering & advance'], c['Catering & advance'], '', cat)
+      + (c.Unmapped ? row(APP_COLOR.Grubhub, `Grubhub <span class="op-chip op-chip--sm" data-tone="warning" title="Not mapped to a Sales Channel yet. Counts in every total; the Org Admin has a To-do to map it.${S.mapped ? ' Snapshotted before the mapping.' : ''}">Unmapped</span>`, c.n.Unmapped, c.Unmapped, 'unm') : '')
+      + xs.map(x => row('var(--chart-reference)', `${esc(x.src)} <span class="hand">${I('pen-line', 12)}by hand</span>${can ? `<button class="x" ${act('xs-del', x.id)} title="Remove" aria-label="Remove">${I('x', 12)}</button>` : ''}`, x.n, x.amt)).join('');
+    const f = S.xs && S.xs.l === l && S.xs.i === i ? S.xs : null;
+    const add = !can ? '' : f ? `<div class="xs-form"><span class="op-input op-input--sm"><input id="xs-src" data-xs="src" placeholder="Source" value="${esc(f.src)}" aria-label="Source"></span><span class="op-input op-input--sm"><input id="xs-n" data-xs="n" inputmode="numeric" placeholder="Orders" value="${esc(f.n)}" aria-label="Orders"></span><span class="op-input op-input--sm"><span class="tert">$</span><input id="xs-amt" data-xs="amt" data-enter="xs-save" inputmode="decimal" placeholder="0" value="${esc(f.amt)}" aria-label="Sales"></span>${btn('Add', act('xs-save'), 'primary', null, { sm: 1 })}${btn('', act('xs-cancel'), 'ghost', 'x', { sm: 1, title: 'Cancel' })}</div>`
+      : `<button class="ch-add" ${act('xs-open', [l, i])}>${I('plus', 12)}Add sales from another source, e.g. NetSuite</button>`;
+    const rf = c.refund ? `<div class="ch-ref">${I('rotate-ccw', 12)}<span>Includes a −${F.money(c.refund.amt, { cents: true })} refund from ${dTitle(c.refund.day)}</span></div>` : '';
+    return `<div class="ch"><div class="ch-total"><span class="lbl">Net sales</span><b>${F.money(tot)}</b><span class="dl">${F.delta(pctChange(tot, prev))} vs ${dTitle(i - 7).slice(0, 3)}</span></div>${xsTot ? `<span class="ch-note">Includes ${F.money(xsTot)} added by hand · Labor % uses POS sales</span>` : ''}<div class="ch-bar" role="img" aria-label="Sales by channel">${segs.map(x => `<span style="flex:${x[1]};background:${x[2]}" title="${esc(x[0])} ${F.money(x[1])}"></span>`).join('')}</div><b class="h3 ch-h">Sales by channel</b>${rows}${rf}${add}</div>`;
+  }
+  function chanChart(locs) {
+    const idx = Array.from({ length: 7 }, (_, k) => LAST - k), per = i => locs.map(x => chan(x, i, S.mapped));
+    const appKeys = ['Uber Eats', 'DoorDash'].concat(S.mapped ? ['Grubhub'] : []), unm = !S.mapped && idx.some(i => per(i).some(c => c.Unmapped));
+    const keys = [['Counter', c => c.Counter, CH_COLOR.Counter], ['Own online', c => c['Own online'], CH_COLOR['Own online']]].concat(appKeys.map(a => [a, c => c.apps[a] || 0, APP_COLOR[a]]), [['Catering & advance', c => c['Catering & advance'], CH_COLOR['Catering & advance']]], unm ? [['Grubhub, unmapped', c => c.Unmapped, APP_COLOR.Grubhub]] : []);
+    return `<div style="margin-top:var(--space-4)">${chartCard('Sales by Sales Channel', `Last 7 Business Days · Delivery apps before commissions${unm ? ' · Grubhub at Court St is not mapped yet and counts in every total' : ''}`, el => O.charts.stacked(el, { labelWidth: 96, rows: idx.map(i => ({ label: dTitle(i), parts: keys.map(k => per(i).reduce((s, c) => s + k[1](c), 0)) })), keys: keys.map(k => ({ name: k[0], color: k[2] })) }))}</div>`;
+  }
+
+  /* Tip Pool sources: everything from Toast except Additional Tips. Cents. */
+  const SRC_E = { 'mass-90': { autograt: 6450, pickup: 1800, courier: 4175 }, 'court-90': { autograt: 4950, pickup: 1500, courier: 0 } };
+  function srcE(l, i) {
+    const c = chan(l, i, false), f = SRC_E[`${l}-${i}`] || { autograt: Math.round(c['Catering & advance'] * 15), pickup: Math.round(c['Delivery apps'] * 2.5), courier: l === 'mass' ? Math.round(c['Own online'] * 5.5) : 0 };
+    return Object.assign({ card: tip(l, i).card, cash: srcCash(l, i) }, f); // card: staff-owned card tips incl. auto-gratuities and pickup tips
+  }
+  let aid = 0;
+  function addlOf(l, i) {
+    const t = tip(l, i);
+    if (!t.addl) t.addl = l === 'mass' ? [{ id: 'A' + (++aid), amt: i === LAST ? 4600 : 2000 + Math.round(h01(l, i, 9) * 40) * 100, src: 'Tip jar' }] : [];
+    return t.addl;
+  }
+  const WAIT_BLOCKED = ['MN', 'CA', 'MA'];
+  const waitDays = l => WAIT_BLOCKED.includes(STATE[l]) ? 0 : POLICY[l].wait || 0;
+  const hoursE = x => +((x.adj ? x.adj.hours : x.hours) - (x.moved || 0)).toFixed(2);
+  // Shift times for Friday's lines, so a Covering Shift can find its overlap with a home-Location shift
+  const FRI_TIMES = { mass: { za: [360, 810], km: [420, 780], lt: [840, 1290], jp: [930, 1260], mz: [720, 960], nk: [600, 900], rp: [960, 1260], ab: [780, 1290], ms: [240, 660], da: [300, 690], hc: [420, 960] }, court: { oh: [780, 1260], mk: [540, 960], nb: [870, 1260], kj: [420, 720], tg: [270, 720], rd: [480, 990], sr: [600, 900] } };
+  LOCS.forEach(l => tip(l, LAST).lines.forEach(x => { const t = FRI_TIMES[l][x.emp]; if (t) { x.from = t[0]; x.to = t[1]; } }));
+
+  function splitE(l, i) {
+    const t = tip(l, i), pol = POLICY[l], src = srcE(l, i), addl = addlOf(l, i), wd = waitDays(l), addTot = addl.reduce((a, x) => a + x.amt, 0);
+    const rows = t.lines.map(x => { const e = elig(x, l), h = hoursE(x), w = pol.weights[x.pos] || 0, n = dayNo(x.emp, i), wait = e.ok && wd > 0 && n <= wd; return Object.assign({}, x, { h, w, ok: e.ok && !wait, why: e.why, kind: e.kind, wait: wait ? n : 0, pts: e.ok && !wait ? h * w : 0 }); });
+    const ok = rows.filter(r => r.ok), cs = shares(src.card, ok), ks = shares(src.cash, ok), xs = shares(addTot, ok);
+    rows.forEach(r => { r.cardS = r.ok ? cs[r.id] : 0; r.cashS = r.ok ? ks[r.id] : 0; r.addS = r.ok ? xs[r.id] : 0; r.total = r.cardS + r.cashS + r.addS; });
+    const sig = JSON.stringify([src.card, src.cash, addTot, ok.map(r => [r.id, r.h, r.w]), t.rev || 0]);
+    if (t.state === 'finalized' && t.genE == null) t.genE = sig;
+    return { t, l, i, src, addl, addTot, pool: src.card + src.cash + addTot, rows, ok, wd, dis: rows.filter(r => r.dis != null), listed: rows.filter(r => r.ok || r.wait || r.kind === 'data'), pts: ok.reduce((a, r) => a + r.pts, 0), hrs: ok.reduce((a, r) => a + r.h, 0), sig, generated: t.genE != null, stale: t.genE != null && t.genE !== sig };
+  }
+  const blockersE = sp => [!sp.generated && 'Generate tips first', sp.stale && 'Shares are Out of date: generate tips again', sp.dis.length && `Settle ${sp.dis.length} disagreement${sp.dis.length > 1 ? 's' : ''} with Harri`, !sp.pts && 'Nobody eligible worked'].filter(Boolean);
+  function tipPolicyLineE(l) {
+    const p = POLICY[l], wd = waitDays(l);
+    return `Tip Policy v${p.version}, effective ${p.since} (${p.by}): ${Object.entries(p.weights).map(([k, v]) => `${k} ${v.toFixed(1)}`).join(', ')} · ${p.credit} · back-of-house not eligible (${STATE[l]}) · ${WAIT_BLOCKED.includes(STATE[l]) ? `Tip Waiting Period not available in ${STATE[l]}` : wd ? `Tip Waiting Period ${wd} days: shares from day ${wd + 1} worked` : 'no Tip Waiting Period'}`;
+  }
+
+  /* What is due, E only: Notifications the actions below raise, and the waiting-period FYI */
+  const NOTICES = [];
+  function dueTipE(l, d) {
+    const sp = splitE(l, d);
+    return `${sp.generated ? sp.stale ? 'Shares Out of date, generate again' : sp.dis.length ? 'Settle Harri disagreements' : 'Generated, ready to finalize' : 'Hours in from Harri · generate tips and finalize'} · ${$(sp.pool)} Tip Pool`;
+  }
+  function dueE(l) {
+    const out = NOTICES.filter(n => n.loc === l).map(n => Object.assign({}, n));
+    const wd = waitDays(l);
+    if (wd) Object.keys(SHIFT_DAYS).filter(id => P(id).locs.includes(l) && dayNo(id, LAST) === wd).forEach(id => out.push({ sev: 5, tile: ['severity', 'info'], title: `${PN(id)} finished the Tip Waiting Period`, detail: `${wd} of ${wd} days worked as ${P(id).pos} · shares in the Tip Pool from the next Business Day worked`, loc: l, act: { kind: 'tips', l, i: LAST }, due: 'FYI' }));
+    return out;
+  }
+
+  /* Closing Report figures: tips as Toast has them, with courier tips shown apart so totals reconcile */
+  function tipFigsE(l, i) {
+    const s = srcE(l, i);
+    return `<span>Card tips, staff</span><span>${$(s.card)}</span><span>Cash tips, POS</span><span>${$(s.cash)}</span>${s.courier ? `<span>Courier tips, never pooled</span><span class="muted">${$(s.courier)}</span>` : ''}<span>Declared cash tips</span><span>${$(D[l][i].declared)}</span>`;
+  }
+
+  /* Tip Distribution page */
+  function VariantE() {
+    const locs = scopeLocs();
+    let main, crumb, navKey = S.page;
+    if (S.page === 'home') { main = dashHome(locs, true); crumb = crumbs([['Home']]); }
+    else if (S.page === 'report') { main = reportD(S.loc, S.day); crumb = crumbs([['Closing Reports', { page: 'reports' }], [`${LN(S.loc)} · ${dTitle(S.day)}`]]); navKey = 'reports'; }
+    else if (S.page === 'tipday') { main = tipsE(S.loc, S.day); crumb = crumbs([['Tip Distribution', { page: 'tips' }], [`${LN(S.loc)} · ${dTitle(S.day)}`]]); navKey = 'tips'; }
+    else { const sp = sectionPage(S.page, locs); main = sp.main; crumb = sp.crumb; }
+    return shell(navKey, crumb, ['report', 'tipday'].includes(S.page) ? '' : scopeBtn(true), main, S.page === 'home' ? 'page--home' : '');
+  }
+  function poolCardE(sp, locked) {
+    const s = sp.src, row = (ic, label, sub, v, extra) => `<div class="pe-row">${I(ic, 16)}<span class="t"><b>${label}</b>${sub ? `<span>${sub}</span>` : ''}</span><span class="v">${v}</span>${extra != null ? `<span class="x">${extra}</span>` : ''}</div>`;
+    const into = row('coins', 'Card tips · Toast', `Incl. Delivery apps pickup tips (DoorDash ${$(s.pickup)})`, $(s.card - s.autograt)) + row('coins', 'Auto-gratuities · Toast', 'Catering & advance orders', $(s.autograt)) + row('banknote', 'Cash tips · Toast', '', $(s.cash));
+    const lines = sp.addl.map(a => row('plus', esc(a.src || 'Additional tips'), 'Additional tips', $(a.amt), locked ? '' : btn('', act('e-addl-del', a.id), 'ghost', 'trash-2', { sm: 1, title: 'Remove' }))).join('');
+    const f = S.addTip && S.addTip.l === sp.l && S.addTip.i === sp.i ? S.addTip : null;
+    const add = locked ? '' : f ? `<div class="pe-form"><span class="op-input op-input--sm"><span class="tert">$</span><input id="at-amt" data-at="amt" data-enter="e-addl-save" inputmode="decimal" placeholder="0.00" value="${esc(f.amt)}" aria-label="Amount"></span><span class="op-input op-input--sm"><input id="at-src" data-at="src" data-enter="e-addl-save" placeholder="Source (optional), e.g. tip jar" value="${esc(f.src)}" aria-label="Source"></span>${btn('Add', act('e-addl-save'), 'primary', null, { sm: 1 })}${btn('Cancel', act('e-addl-cancel'), 'ghost', null, { sm: 1 })}</div>`
+      : `<div>${btn('Add additional tips', act('e-addl-add', [sp.l, sp.i]), 'secondary', 'plus', { sm: 1 })}</div>`;
+    return `<section class="op-card pool-e"><div class="pe-h"><span class="op-kpi-h">${I('hand-coins', 16)}Tip Pool</span><b class="big">${$(sp.pool)}</b><span class="tert">${sp.hrs ? `${$(Math.round(sp.pool / sp.hrs))}/h over ${sp.hrs.toFixed(2)} eligible h` : 'No eligible hours yet'}</span></div><div class="pe-col">${into}${lines}${add}</div></section>`;
+  }
+  function tipsE(l, i) {
+    const sp = splitE(l, i), t = sp.t, fin = t.state === 'finalized', show = fin || (sp.generated && !sp.stale), locked = fin || !isLead(), blockers = blockersE(sp);
+    const acts = fin ? '' : btn(t.refreshing ? 'Refreshing…' : 'Refresh hours', act('e-refresh', [l, i]), 'secondary', 'refresh-cw', { disabled: t.refreshing || t.cool, title: t.cool ? 'Available again a minute after the last refresh' : 'Pull new, changed and removed shifts and approvals from Harri' }) + (show ? btn(`Finalize ${$(sp.pool)}`, act('e-finalize', [l, i]), 'primary', 'lock', { disabled: !!blockers.length, title: blockers.join(' · ') }) : btn(sp.stale ? 'Generate tips again' : 'Generate tips', act('e-generate', [l, i]), 'primary', 'coins', { disabled: !sp.pts, title: sp.pts ? '' : 'Nobody eligible worked: add the missing shift first' }));
+    const status = fin ? finalizedNote({ t, pool: sp.pool }) : `${O.chip('tipDistribution', 'draft')}${sp.stale ? `<span class="op-chip" data-tone="warning">${I('refresh-cw', 12)}Out of date</span>` : ''}<span class="tert" style="font-size:13px">Hours from Harri, synced ${t.synced || (S.clock === 'closing' ? '21:38' : '07:55')} · sales and tips from Toast, synced ${S.clock === 'closing' ? '21:35' : '04:05'}${S.clock === 'closing' && i === LAST ? ' · open since the Business Day started, so you can finish tonight' : ''}</span>`;
+    const banners = fin ? [] : [
+      t.harriPending && sp.generated && alert('info', 'refresh-cw', `Harri has changes since ${t.harriPending}`, 'Generated numbers never move on their own. Refresh hours to pull the changes in.', btn('Refresh hours', act('e-refresh', [l, i]), 'secondary', null, { sm: 1, disabled: t.cool })),
+      sp.dis.length && alert('warning', 'arrow-right-left', `${sp.dis.length} line${sp.dis.length > 1 ? 's' : ''} disagree${sp.dis.length > 1 ? '' : 's'} with Harri`, 'Keep your hours or use Harri’s on each line below. Finalize is blocked until every one is settled.'),
+      sp.stale && alert('warning', 'refresh-cw', 'Shares are Out of date', 'Hours, tips or lines changed since you generated. Generate tips again before you finalize.'),
+      !sp.generated && alert('info', 'coins', 'Hours are in from Harri', 'Check them, add any additional tips and anyone who covered a shift, then generate tips to fill in each share.')
+    ].filter(Boolean);
+    const hasAdd = sp.addTot > 0, cols = hasAdd ? 9 : 8;
+    const cell = v => show ? $(v) : '<span class="tert">—</span>';
+    const tag = r => r.wait ? `<span class="op-chip op-chip--sm" data-tone="warning" title="Their hours are left out of the split and the tips they earned stay in the Tip Pool. Only Ops or the Org Admin can waive it.">${I('hourglass', 12)}Waiting period: day ${r.wait} of ${sp.wd}</span>`
+      : r.kind === 'data' ? `<span class="op-chip op-chip--sm" data-tone="info">${I('file-clock', 12)}Unapproved in Harri</span>${locked ? '' : ` <a class="lnk" ${act('hrs-edit', r.id)}>Include by hand</a>`}`
+      : r.added ? `<span class="op-chip op-chip--sm" data-tone="info" title="Added by hand: ${esc(r.adj ? r.adj.reason : r.reason)}">${I('store', 12)}Covering from ${LN(r.covering)} · by hand</span>`
+      : r.covering ? `<span class="op-chip op-chip--sm" data-tone="quiet" title="Covering Shift reported by Harri at this Location">${I('store', 12)}Covering from ${LN(r.covering)}</span>` : '';
+    const extra = r => (r.dis != null ? `<tr class="note-row"><td colspan="${cols + 1}"><span class="dis">${I('arrow-right-left', 12)}<span>Harri now says <b>${r.dis.toFixed(2)} h</b>, you set <b>${r.h.toFixed(2)} h</b> (${esc(r.adj ? r.adj.reason : '')})</span>${locked ? '' : btn('Keep mine', act('e-keep', r.id), 'secondary', null, { sm: 1 }) + btn('Use Harri', act('e-use', r.id), 'ghost', null, { sm: 1 })}</span></td></tr>` : '')
+      + (r.moved ? `<tr class="note-row"><td colspan="${cols + 1}"><span class="tert">${I('store', 12)}${r.moved.toFixed(1)} h moved to cover at ${LN(r.movedTo)}, set by ${LN(r.movedTo)} · ${fmtT(r.from)}–${fmtT(r.to)} in Harri</span></td></tr>` : '');
+    const row = r => `<tr class="${r.ok ? '' : 'out'}${r.dis != null || r.moved ? ' has-note' : ''}"><td><span class="op-emp">${O.avatar(PN(r.emp), 24)}<span class="who"><b>${PN(r.emp)}</b><span>${P(r.emp).role}${tag(r) ? ` ${tag(r)}` : ''}</span></span></span></td><td>${r.pos}</td><td class="muted">${r.from != null ? `${fmtT(r.from)}–${fmtT(r.to)}` : '<span class="tert">—</span>'}</td><td class="num">${hoursCell(r, l, i, locked || r.added)}</td><td class="num">${r.w.toFixed(1)}</td><td class="num">${cell(r.cardS)}</td><td class="num">${cell(r.cashS)}</td>${hasAdd ? `<td class="num">${cell(r.addS)}</td>` : ''}<td class="num" style="font-weight:600">${cell(r.total)}</td><td class="act">${r.added && !locked ? btn('', act('e-cover-del', r.id), 'ghost', 'trash-2', { sm: 1, title: 'Remove this Covering Shift' }) : ''}</td></tr>${extra(r)}`;
+    const table = `<div class="op-table-wrap"><table class="op-table tips-t tips-e"><thead><tr><th>Employee</th><th>Position</th><th>Shift</th><th class="num">Hours</th><th class="num">Weight</th><th class="num">Card</th><th class="num">Cash</th>${hasAdd ? '<th class="num">Additional</th>' : ''}<th class="num">Total</th><th></th></tr></thead><tbody>${sp.listed.map(row).join('')}</tbody>${show ? `<tfoot><tr><td>${sp.ok.length} sharing</td><td></td><td></td><td class="num">${sp.hrs.toFixed(2)}</td><td></td><td class="num">${$(sp.src.card)}</td><td class="num">${$(sp.src.cash)}</td>${hasAdd ? `<td class="num">${$(sp.addTot)}</td>` : ''}<td class="num">${$(sp.pool)}</td><td></td></tr></tfoot>` : ''}</table></div>`;
+    // Lines this Location's Employees worked as Covering Shifts elsewhere, once that Location finalized: read-only, paid there
+    const away = LOCS.filter(o => o !== l && tip(o, i).state === 'finalized').flatMap(o => splitE(o, i).rows.filter(r => r.covering === l && r.ok).map(r => `<div class="away-row">${O.avatar(PN(r.emp), 20)}<span><b>${PN(r.emp)}</b> · Covering at ${LN(o)}: ${r.h.toFixed(1)} h ${r.pos}, ${$(r.total)} · set by ${LN(o)}</span></div>`)).join('');
+    const awayCard = away ? `<div class="op-card away"><b class="h3">Covering Shifts at other Locations</b>${away}<span class="section-note">Not in ${LN(l)}'s pool, totals or export; the other Location's export pays it, so each share is paid once.</span></div>` : '';
+    const below = `<div class="tips-below">${!locked ? (S.cover && S.cover.l === l ? coverFormE(l, i) : btn('Add a Covering Shift from another Location', act('e-cover', [l, i]), 'secondary', 'plus', { sm: 1 })) : ''}<span class="section-note">${tipPolicyLineE(l)}.</span></div>`;
+    return pageHead(`Tip Distribution · ${dTitle(i)}`, [LN(l), STATE[l]], acts) + `<div class="dayhead">${status}</div>` + (fin || STATE[l] !== 'MA' ? '' : alert('info', 'info', 'Massachusetts Location', 'State rules on when pooled tips must be paid apply, and a Tip Waiting Period is not available. Opsell computes the split; payment and its timing stay with payroll.')) + poolCardE(sp, locked) + banners.join('') + table + awayCard + below;
+  }
+  const QUAL = { mk: ['Barista', 'Cashier'], nb: ['Cashier', 'Barista'], oh: ['Shift lead', 'Barista'], ab: ['Shift lead', 'Barista'], za: ['Barista', 'Cashier'], ec: ['Barista', 'Cashier'] };
+  const qualOf = id => QUAL[id] || [P(id).pos];
+  const REASONS = ['Clocked at home Location', 'Shift missing from time clock', 'Other'];
+  const coverPick = l => PEOPLE.filter(p => !p.locs.includes(l) && !isLeadRole(p)).sort((a, b) => (LOCS.includes(b.locs[0]) - LOCS.includes(a.locs[0])) || a.name.localeCompare(b.name));
+  function coverFormE(l) {
+    const c = S.cover, p = P(c.emp), posOk = qualOf(c.emp).filter(x => POLICY[l].weights[x]), pos = posOk.includes(c.pos) ? c.pos : posOk[0];
+    const st = toMin(c.start), en = toMin(c.end), h = (en - st - (+c.brk || 0)) / 60;
+    const fld = (label, inner, span) => `<label class="op-field"${span ? ` style="grid-column:span ${span}"` : ''}><span class="op-label">${label}</span>${inner}</label>`;
+    const inp = (f, type, extra) => `<span class="op-input"><input id="cv-${f}" data-cv="${f}" type="${type}" value="${esc(c[f])}"${extra || ''}></span>`;
+    return `<div class="op-card cover-e"><div class="sec-h"><b class="h3">Add a Covering Shift</b><span class="tert">${LN(l)} · ${STATE[l]}</span></div>
+      <div class="cv-grid">${fld('Employee', `<select class="op-input op-input--select" id="cv-emp" data-cv="emp">${coverPick(l).map(x => `<option value="${x.id}" ${x.id === c.emp ? 'selected' : ''}>${x.name} · ${x.locs.map(LN).join(', ')}</option>`).join('')}</select><span class="help">Qualified: ${qualOf(c.emp).join(', ')}</span>`, 2)}
+      ${fld('Position worked', posOk.length ? `<select class="op-input op-input--select" id="cv-pos" data-cv="pos">${posOk.map(x => `<option ${x === pos ? 'selected' : ''}>${x}</option>`).join('')}</select>` : `<span class="help bad">${p.first} has no tip-eligible Position here - edit in Harri</span>`, 2)}
+      ${fld('Start', inp('start', 'time'))}${fld('End', inp('end', 'time'))}
+      ${fld('Break, minutes', inp('brk', 'number', ' min="0" step="5"'))}${fld('Hours', `<span class="hrs-out">${h > 0 ? h.toFixed(2) + ' h' : '<span class="bad">End must be after start</span>'}</span>`)}
+      ${fld('Reason', `<select class="op-input op-input--select" id="cv-reason" data-cv="reason">${REASONS.map(x => `<option ${x === c.reason ? 'selected' : ''}>${x}</option>`).join('')}</select>`, 2)}${fld(c.reason === 'Other' ? 'Note (required)' : 'Note (optional)', inp('note', 'text', ' placeholder="e.g. covered the afternoon rush"'), 2)}</div>
+      <span class="section-note">Search covers every Employee in the Organization; you see only their name, works-at Location and qualified Positions. They join ${LN(l)}'s pool under ${LN(l)}'s Tip Policy and ${STATE[l]} rules. Time that overlaps a shift at their home Location comes off that line, and its GM and Managers are told. Never written back to Harri.</span>
+      <div class="sg-acts">${btn('Add to the Tip Distribution', act('e-cover-save', l), 'primary', null, { sm: 1, disabled: !posOk.length || !(h > 0) })}${btn('Cancel', act('e-cover-cancel'), 'ghost', null, { sm: 1 })}</div></div>`;
+  }
+  function tipsListE(locs) {
+    const days = Array.from({ length: 14 }, (_, k) => LAST - k);
+    return `<div class="op-table-wrap"><table class="op-table"><thead><tr><th>Business Day</th>${locs.length > 1 ? '<th>Location</th>' : ''}<th>Tip Distribution</th><th class="num">Card tips</th><th class="num">Cash tips</th><th class="num">Additional</th><th class="num">Tip Pool</th><th class="num">Sharing</th><th>Finalized by</th></tr></thead><tbody>${days.flatMap(i => locs.map(l => { const sp = splitE(l, i), ts = tipState(l, i); return `<tr ${act('open-tips', [l, i])} data-go="{}"><td style="font-weight:500">${dTitle(i)}</td>${locs.length > 1 ? `<td><span class="glyph">${glyphKey(l)}${LN(l)}</span></td>` : ''}<td>${O.chip('tipDistribution', ts, { size: 'sm' })}${sp.stale && ts === 'draft' ? ' <span class="op-chip op-chip--sm" data-tone="warning">Out of date</span>' : ''}</td><td class="num">${$(sp.src.card)}</td><td class="num">${$(sp.src.cash)}</td><td class="num">${sp.addTot ? $(sp.addTot) : '<span class="tert">—</span>'}</td><td class="num" style="font-weight:500">${$(sp.pool)}</td><td class="num">${sp.ok.length}</td><td class="muted">${sp.t.by ? `${PN(sp.t.by)} · ${sp.t.at}` : '—'}</td></tr>`; })).join('')}</tbody></table></div><p class="section-note">Pay Period Oct 5 – Oct 18. Opsell computes the split; payment runs through payroll.</p>`;
+  }
+  function finModalE() {
+    const [l, i] = S.fin, sp = splitE(l, i), s = sp.src;
+    return modal('fin', `Finalize ${LN(l)} · ${dTitle(i)}?`, 'This version locks. Only Ops or the Org Admin can reopen it, with a reason.', `<div class="kv"><span>Card tips and auto-gratuities, Toast</span><span>${$(s.card)}</span><span>Cash tips, Toast</span><span>${$(s.cash)}</span>${sp.addl.map(a => `<span>${esc(a.src || 'Additional tips')}</span><span>${$(a.amt)}</span>`).join('')}<span>Tip Pool</span><span>${$(sp.pool)}</span><span>Employees sharing</span><span>${sp.ok.length}</span><span>Hours in the pool</span><span>${sp.hrs.toFixed(2)}</span><span>Waiting period, $0 share</span><span>${sp.rows.filter(r => r.wait).length}</span><span>Lines adjusted or added by hand</span><span>${sp.rows.filter(r => r.adj).length}</span></div><span class="section-note">${tipPolicyLineE(l)}</span>`, btn('Cancel', act('modal-close'), 'ghost') + btn('Finalize', act('e-finalize-confirm'), 'primary', 'lock'));
+  }
+
+  /* Scripted Harri edit on Mass Ave's Friday: a late approval, an untouched line changed, and an edited line changed */
+  function harriEdit() {
+    const t = tip('mass', LAST);
+    if (t.harriDone || t.state === 'finalized') return false;
+    t.harriDone = true;
+    t.harriChanges = [['rp', x => { x.status = 'approved'; }, 'Ravi Patel: timesheet approved'], ['km', x => { x.hours = 6.25; x.to = 795; }, 'Kofi Mensah: 6.00 → 6.25 h'], ['lt', x => { x.hours = 7.75; x.to = 1305; }, 'Lucy Tran: 7.50 → 7.75 h']];
+    if (t.genE == null) { applyHarri(t); toast(`Harri synced in the background · ${t.applied.join(' · ')}`); }
+    else { t.harriPending = S.clock === 'closing' ? '21:44' : '08:16'; toast('Someone edited Mass Ave’s Friday shifts in Harri (simulated)'); }
+    return true;
+  }
+  function applyHarri(t) {
+    t.applied = [];
+    (t.harriChanges || []).forEach(([emp, fn, msg]) => { const x = t.lines.find(y => y.emp === emp && !y.added); if (!x) return; const was = x.hours; fn(x); if (x.adj && x.hours !== was && x.adj.hours !== x.hours) x.dis = x.hours; t.applied.push(msg); });
+    t.harriChanges = null; t.harriPending = null; t.synced = nowTime();
+  }
+  const ACT_E = {
+    'e-generate': ([l, i]) => { const sp = splitE(l, i); sp.t.genE = sp.sig; toast(`Tips generated · ${$(sp.pool)} across ${sp.ok.length} Employees`); render(); if (l === 'mass' && i === LAST) setTimeout(() => { if (harriEdit()) render(); }, 4000); },
+    'e-refresh': ([l, i]) => {
+      const t = tip(l, i); t.refreshing = true; render();
+      setTimeout(() => {
+        t.refreshing = false; t.cool = true; setTimeout(() => { t.cool = false; render(); }, 60000);
+        if (t.harriChanges) { applyHarri(t); toast(`Refreshed from Harri · ${t.applied.join(' · ')}. Lines you edited keep your hours until you choose.`); }
+        else { t.synced = nowTime(); toast('Refreshed from Harri · no changes'); }
+        render();
+      }, 900);
+    },
+    'e-keep': id => { Object.values(TIP).forEach(t => t.lines.forEach(x => { if (x.id === id) { x.dis = null; t.rev = (t.rev || 0) + 1; } })); toast('Kept your hours · recorded in the Audit Log against Harri’s value'); render(); },
+    'e-use': id => { Object.values(TIP).forEach(t => t.lines.forEach(x => { if (x.id === id) { x.dis = null; x.adj = null; t.rev = (t.rev || 0) + 1; } })); toast('Using Harri’s hours · recorded in the Audit Log'); render(); },
+    'e-finalize': ([l, i]) => { if (!blockersE(splitE(l, i)).length) set({ modal: 'finE', fin: [l, i] }); },
+    'e-finalize-confirm': () => { const [l, i] = S.fin, sp = splitE(l, i); if (blockersE(sp).length) return; Object.assign(sp.t, { state: 'finalized', by: me().id, at: nowTime(), version: sp.t.version || 1, cash: sp.src.cash }); toast(`Tip Distribution finalized · ${$(sp.pool)} to ${sp.ok.length} Employees · ${LN(l)} ${dTitle(i)}`); set({ modal: null, editHours: null, cover: null }); },
+    'e-addl-add': ([l, i]) => { S.refocus = 'at-amt'; set({ addTip: { l, i, amt: '', src: '' } }); },
+    'e-addl-cancel': () => set({ addTip: null }),
+    'e-addl-save': () => {
+      const f = S.addTip, n = parseFloat(String(f.amt).replace(/[$,]/g, ''));
+      if (!(n > 0)) { toast('Enter the amount'); render(); return; }
+      addlOf(f.l, f.i).push({ id: 'A' + (++aid), amt: Math.round(n * 100), src: f.src.trim() });
+      toast(`Additional tips added · ${$(Math.round(n * 100))}${f.src.trim() ? ` · ${f.src.trim()}` : ''}`); set({ addTip: null });
+    },
+    'xs-open': ([l, i]) => { S.refocus = 'xs-n'; set({ xs: { l, i, src: 'NetSuite', n: '', amt: '' } }); },
+    'xs-cancel': () => set({ xs: null }),
+    'xs-save': () => {
+      const f = S.xs, amt = Math.round(parseFloat(String(f.amt).replace(/[$,]/g, ''))), n = parseInt(f.n, 10);
+      if (!(amt > 0) || !f.src.trim()) { toast('Enter the source and the sales amount'); render(); return; }
+      xsOf(f.l, f.i).push({ id: 'X' + (++xid), src: f.src.trim(), n: n >= 0 ? n : null, amt, by: me().id });
+      touch(rep(f.l, f.i), f.l, f.i); toast(`${f.src.trim()} sales added · ${F.money(amt)}`); set({ xs: null });
+    },
+    'xs-del': id => { Object.values(REP).forEach(r => { if (r.xsales) r.xsales = r.xsales.filter(x => x.id !== id); }); render(); },
+    'e-addl-del': id => { Object.values(TIP).forEach(t => { if (t.addl) t.addl = t.addl.filter(a => a.id !== id); }); render(); },
+    'e-cover': ([l]) => { const first = coverPick(l)[0]; set({ cover: { l, emp: first.id, pos: '', start: '12:00', end: '16:00', brk: '0', reason: REASONS[0], note: '' } }); },
+    'e-cover-cancel': () => set({ cover: null }),
+    'e-cover-save': l => {
+      const c = S.cover, i = S.day == null ? LAST : S.day, t = tip(l, i), st = toMin(c.start), en = toMin(c.end), h = +((en - st - (+c.brk || 0)) / 60).toFixed(2);
+      const posOk = qualOf(c.emp).filter(x => POLICY[l].weights[x]), pos = posOk.includes(c.pos) ? c.pos : posOk[0];
+      if (!(h > 0) || !pos) return;
+      if (c.reason === 'Other' && !c.note.trim()) { toast('Add a note for Other'); render(); return; }
+      // Double-pooling guard: the same minutes never sit in two Tip Pools; the place it was worked wins
+      let moved = 0, homeFin = null;
+      const home = P(c.emp).locs[0];
+      P(c.emp).locs.filter(x => LOCS.includes(x)).forEach(hl => { const ht = tip(hl, i); ht.lines.filter(x => x.emp === c.emp && x.from != null).forEach(x => { const ov = Math.max(0, Math.min(x.to, en) - Math.max(x.from, st)) / 60; if (!ov) return; if (ht.state === 'finalized') { homeFin = hl; return; } x.moved = +((x.moved || 0) + ov).toFixed(2); x.movedTo = l; ht.rev = (ht.rev || 0) + 1; moved += ov; }); });
+      const nl = line(c.emp, pos, 0, { adj: { hours: h, reason: c.reason + (c.note.trim() ? `: ${c.note.trim()}` : ''), by: me().id }, covering: home, added: true, from: st, to: en, reason: c.reason, ovr: moved });
+      t.lines.push(nl);
+      const who = PN(c.emp), base = { loc: home, key: nl.id, act: { kind: 'tips', l: home, i } };
+      if (moved) NOTICES.push(Object.assign(base, { sev: 1, tile: ['tipDistribution', 'draft'], title: `${moved.toFixed(1)} h of ${who}'s shift moved to cover at ${LN(l)}`, detail: `${dTitle(i)} · ${LN(home)}'s shares are Out of date · added by ${me().name}`, due: 'Act now' }));
+      else if (homeFin) NOTICES.push(Object.assign(base, { sev: 1, tile: ['tipDistribution', 'reopened'], title: `Cover at ${LN(l)} overlaps a finalized day`, detail: `${who} · ${dTitle(i)} · Ops or the Org Admin must Reopen ${LN(home)} to move the hours`, due: 'Ops To-do' }));
+      else if (LOCS.includes(home)) NOTICES.push(Object.assign(base, { sev: 5, tile: ['severity', 'info'], title: `${who} covered at ${LN(l)}`, detail: `${dTitle(i)}, ${h.toFixed(1)} h, added by ${me().name}`, act: null, due: 'FYI' }));
+      toast(`${who} added · ${h.toFixed(2)} h ${pos}${moved ? ` · ${moved.toFixed(1)} h moved off their ${LN(home)} line, ${LN(home)}'s GM and Managers told` : ''}`);
+      set({ cover: null });
+    },
+    'e-cover-del': id => {
+      Object.values(TIP).forEach(t => {
+        const nl = t.lines.find(x => x.id === id); if (!nl) return;
+        t.lines = t.lines.filter(x => x !== nl);
+        if (nl.ovr) LOCS.forEach(hl => tip(hl, t.i).lines.filter(x => x.emp === nl.emp && x.movedTo === t.l).forEach(x => { x.moved = Math.max(0, +(x.moved - nl.ovr).toFixed(2)); tip(hl, t.i).rev = (tip(hl, t.i).rev || 0) + 1; }));
+        for (let k = NOTICES.length - 1; k >= 0; k--) if (NOTICES[k].key === id) NOTICES.splice(k, 1);
+      });
+      toast('Covering Shift removed · any moved hours went back to the home Location'); render();
+    },
+    'e-harri-edit': () => { if (!harriEdit()) toast('Already edited, or the day is finalized'); set({ pop: false }); }
+  };
+  document.addEventListener('input', e => {
+    const t = e.target;
+    if (t.dataset.cv) S.cover[t.dataset.cv] = t.value;
+    if (t.dataset.at && S.addTip) S.addTip[t.dataset.at] = t.value;
+    if (t.dataset.xs && S.xs) S.xs[t.dataset.xs] = t.value;
+  });
+  document.addEventListener('change', e => { const t = e.target; if (t.dataset.cv) { S.cover[t.dataset.cv] = t.value; if (t.dataset.cv === 'emp') S.cover.pos = ''; render(); } });
+
   /* ───────────── Actions ───────────── */
   const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
   let tst;
@@ -714,8 +1003,8 @@
     'note-save': id => { const t = val('edit-' + id).trim(); SECTIONS.forEach(s => { Object.values(REP).forEach(r => r.notes[s].forEach(n => { if (n.id === id && t) n.text = t; })); }); set({ editNote: null }); },
     'note-del': id => { Object.values(REP).forEach(r => SECTIONS.forEach(s => { r.notes[s] = r.notes[s].filter(n => n.id !== id); })); render(); },
     'photo-add': sec => { const r = rep(S.variant === 'C' ? (myLocs().includes(S.loc) ? S.loc : myLocs()[0]) : S.loc, S.day == null ? LAST : S.day); r.photos[sec].push(`IMG_${2042 + Math.floor(Math.random() * 900)}.jpg`); toast(`Photo attached to ${sec}`); render(); },
-    'submit-start': ([l, i]) => { const r = rep(l, i); const items = extract(l, allNotes(crView(l, i)), me().id); set({ review: { l, i, items, later: false }, step: 'review', modal: ['B', 'D'].includes(S.variant) ? 'review' : null, editNote: null }); },
-    'later-review': ([l, i]) => { if (S.variant === 'C') { S.page = 'day'; S.loc = l; S.day = i; } else if (S.variant === 'A') { S.page = 'report'; S.loc = l; S.day = i; } set({ review: { l, i, items: rep(l, i).pending, later: true }, modal: ['B', 'D'].includes(S.variant) ? 'review' : null }); },
+    'submit-start': ([l, i]) => { const r = rep(l, i); const items = extract(l, allNotes(crView(l, i)), me().id); set({ review: { l, i, items, later: false }, step: 'review', modal: ['B', 'D', 'E'].includes(S.variant) ? 'review' : null, editNote: null }); },
+    'later-review': ([l, i]) => { if (S.variant === 'C') { S.page = 'day'; S.loc = l; S.day = i; } else if (S.variant === 'A') { S.page = 'report'; S.loc = l; S.day = i; } set({ review: { l, i, items: rep(l, i).pending, later: true }, modal: ['B', 'D', 'E'].includes(S.variant) ? 'review' : null }); },
     'review-cancel': () => set({ review: null, step: null, modal: null }),
     'sg-confirm': k => { S.review.items.find(s => s.k === k).status = 'confirmed'; render(); },
     'sg-dismiss': k => { S.review.items.find(s => s.k === k).status = 'dismissed'; render(); },
@@ -782,6 +1071,7 @@
     'finalize-d': ([l, i]) => set({ modal: 'finD', fin: [l, i] }),
     'finalize-d-confirm': () => { const [l, i] = S.fin, sp = splitD(l, i); if (sp.stale || !sp.generated || !sp.pts) return; Object.assign(sp.t, { state: 'finalized', by: me().id, at: nowTime(), version: sp.t.version || 1, cash: sp.cash }); toast(`Tip Distribution finalized · ${$(sp.pool)} to ${sp.ok.length} Employees · ${LN(l)} ${dTitle(i)}`); set({ modal: null, editHours: null, addLine: null }); }
   };
+  Object.assign(ACT, ACT_E);
   function doFinalize(l, i) {
     const sp = split(l, i); if (finalizeIssues(sp).length) return;
     Object.assign(sp.t, { state: 'finalized', by: me().id, at: nowTime(), version: sp.t.version || 1 });
@@ -795,6 +1085,7 @@
     if (S.modal === 'review' && S.review) { const rv = S.review; h += modal('review', rv.later ? `Review HR Flag suggestions · ${dTitle(rv.i)}` : `Submit Closing Report · ${dTitle(rv.i)}`, `${LN(rv.l)} · ${rv.later ? 'already submitted' : 'you become the author'}`, reviewBody(rv), btn('Back', act('review-cancel'), 'ghost') + btn(submitLabel(rv), act('submit-finish'), 'primary', 'check', { disabled: !reviewReady(rv) }), true); }
     if (S.modal === 'finalize') { const [l, i] = S.fin, sp = split(l, i); h += modal('fin', `Finalize ${LN(l)} · ${dTitle(i)}?`, 'This version locks. Only Ops or the Org Admin can reopen it, with a reason.', `<div class="kv"><span>Tip Pool</span><span>${$(sp.pool)}</span><span>Card tips</span><span>${$(sp.t.card)}</span><span>Cash jar</span><span>${$(sp.t.cash)}</span><span>Employees sharing</span><span>${sp.ok.length}</span><span>Hours in the pool</span><span>${sp.hrs.toFixed(2)}</span><span>Adjusted or added lines</span><span>${sp.rows.filter(r => r.adj).length}</span><span>Not in the pool</span><span>${sp.out.length}</span></div><span class="section-note">${tipPolicyLine(l)}</span>`, btn('Cancel', act('modal-close'), 'ghost') + btn('Finalize', act('finalize-confirm'), 'primary', 'lock')); }
     if (S.modal === 'finD') { const [l, i] = S.fin, sp = splitD(l, i); h += modal('fin', `Finalize ${LN(l)} · ${dTitle(i)}?`, 'This version locks. Only Ops or the Org Admin can reopen it, with a reason.', `<div class="kv"><span>Card tips, Toast</span><span>${$(sp.t.card)}</span><span>Cash tips, Toast</span><span>${$(sp.cash)}</span><span>Additional tips</span><span>${$(sp.extra)}${sp.t.extraNote ? ` <span class="tert" style="font-weight:400">${esc(sp.t.extraNote)}</span>` : ''}</span><span>Tip Pool</span><span>${$(sp.pool)}</span><span>Employees sharing</span><span>${sp.ok.length}</span><span>Hours in the pool</span><span>${sp.hrs.toFixed(2)}</span><span>Lines adjusted or added by hand</span><span>${sp.rows.filter(r => r.adj).length}</span></div><span class="section-note">${tipPolicyLine(l)}</span>`, btn('Cancel', act('modal-close'), 'ghost') + btn('Finalize', act('finalize-d-confirm'), 'primary', 'lock')); }
+    if (S.modal === 'finE') h += finModalE();
     if (S.modal === 'flag') h += flagModal(S.m || {});
     if (S.modal === 'wu') h += wuModal(S.m || {});
     if (S.modal === 'wud') { const w = WRITEUPS.find(x => x.id === S.m.id); if (w) h += wuDetail(w); }
@@ -805,12 +1096,12 @@
   }
 
   /* ───────────── Prototype bar ───────────── */
-  const VARIANTS = [['D', "Founder's pick", 'B Home + quick actions, one notes card filed by Opsell, tips from Toast + Generate'], ['A', 'Inbox', 'Home is a to-do list; flows are full pages with steps'], ['B', 'Dashboard', 'Corporate Home anatomy; flows are pages, Submit and Finalize in modals'], ['C', 'Business Day', 'The day is the workspace: notes, tips and figures side by side']];
+  const VARIANTS = [['E', 'D, updated Oct 19', 'Sales by channel, Tip Pool by source, Additional Tips lines, Tip Waiting Period, Covering Shifts'], ['D', "Founder's pick, Oct 18", 'B Home + quick actions, one notes card filed by Opsell, tips from Toast + Generate'], ['A', 'Inbox', 'Home is a to-do list; flows are full pages with steps'], ['B', 'Dashboard', 'Corporate Home anatomy; flows are pages, Submit and Finalize in modals'], ['C', 'Business Day', 'The day is the workspace: notes, tips and figures side by side']];
   const PERSONA_LABEL = { gm: 'GM · Jordan Reyes (2 Locations)', mgr: 'Manager · Hannah Cole', ss: 'Senior-sup · Aisha Bello' };
   function protoBar() {
     const v = VARIANTS.find(x => x[0] === S.variant);
     const bar = `<div class="proto" role="toolbar" aria-label="Prototype controls"><button class="arrow" data-act="prev" aria-label="Previous variant">‹</button><span class="lbl"><b>${v[0]}</b>${v[1]}<span class="tert" style="color:var(--proto-dim)"> · ${v[2]}</span></span><button class="arrow" data-act="next" aria-label="Next variant">›</button><span class="sep"></span><select data-set="persona" aria-label="View as">${Object.entries(PERSONA_LABEL).map(([k, t]) => `<option value="${k}" ${S.persona === k ? 'selected' : ''}>${t}</option>`).join('')}</select><select data-set="clock" aria-label="Clock"><option value="closing" ${S.clock === 'closing' ? 'selected' : ''}>Fri 9:40 pm, closing</option><option value="morning" ${S.clock === 'morning' ? 'selected' : ''}>Sat 8:12 am, morning after</option></select><button data-act="pop" aria-expanded="${S.pop}">Org toggles</button></div>`;
-    const pop = S.pop ? `<div class="proto-pop"><h4>Organization toggles</h4>${[['mgrFlags', 'Managers see HR Flags', 'On by default. Off: Hannah loses the HR Flags section (she still confirms suggestions on her own reports).'], ['aiInjury', 'AI suggests injury flags', 'On by default. Off: Workplace injury is never suggested; authors add it themselves.']].map(([k, t, d]) => `<label><input type="checkbox" data-toggle="${k}" ${S[k] ? 'checked' : ''}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}<div class="about">Switching persona keeps the shared draft: add a Closing Note as Aisha, switch to Hannah and it is locked to Aisha. State is in memory; reload resets it. Keys: ← → change variant.</div></div>` : '';
+    const pop = S.pop ? `<div class="proto-pop"><h4>Organization toggles</h4>${[['mgrFlags', 'Managers see HR Flags', 'On by default. Off: Hannah loses the HR Flags section (she still confirms suggestions on her own reports).'], ['aiInjury', 'AI suggests injury flags', 'On by default. Off: Workplace injury is never suggested; authors add it themselves.'], ['mapped', 'Org Admin maps Grubhub (E)', "Off by default: Court St's Grubhub orders sit under Unmapped. On: they move to Delivery apps in Sales & Labor and on open drafts; submitted Closing Reports keep their snapshot."]].map(([k, t, d]) => `<label><input type="checkbox" data-toggle="${k}" ${S[k] ? 'checked' : ''}><span><b>${t}</b><small>${d}</small></span></label>`).join('')}${S.variant === 'E' ? `<button class="proto-btn" data-act="e-harri-edit">Simulate someone editing Mass Ave's Friday shifts in Harri</button>` : ''}<div class="about">Switching persona keeps the shared draft: add a Closing Note as Aisha, switch to Hannah and it is locked to Aisha. State is in memory; reload resets it. Keys: ← → change variant.</div></div>` : '';
     return bar + pop;
   }
 
@@ -825,7 +1116,7 @@
     const kept = {}; document.querySelectorAll('input[id], textarea[id]').forEach(el => { if (/^(cmp-|edit-|fl-text|mf-text|al-)/.test(el.id)) kept[el.id] = el.value; });
     const ae = document.activeElement, focusId = S.refocus || (ae && ae.id), sel = ae && ae.selectionStart != null ? [ae.selectionStart, ae.selectionEnd] : null; S.refocus = null;
     const scroll = document.querySelector('.scroll'), y = scroll ? scroll.scrollTop : 0, key = S.variant + S.page + S.loc + S.day + S.persona + S.step + S.tipStep, keep = render.lastKey === key;
-    document.getElementById('app').innerHTML = ({ A: VariantA, B: VariantB, C: VariantC, D: VariantD })[S.variant]();
+    document.getElementById('app').innerHTML = ({ A: VariantA, B: VariantB, C: VariantC, D: VariantD, E: VariantE })[S.variant]();
     document.getElementById('layer').innerHTML = layer();
     document.getElementById('proto').innerHTML = protoBar();
     post.forEach(fn => fn());
@@ -883,7 +1174,7 @@
   window.addEventListener('hashchange', () => { const v = location.hash.slice(1).toUpperCase(); if (VARIANTS.some(x => x[0] === v) && v !== S.variant) set({ variant: v, page: v === 'C' ? 'day' : 'home', review: null, modal: null }); });
 
   const h = location.hash.slice(1).toUpperCase(), q = new URLSearchParams(location.search);
-  S.variant = VARIANTS.some(x => x[0] === h) ? h : VARIANTS.some(x => x[0] === q.get('variant')) ? q.get('variant') : 'D';
+  S.variant = VARIANTS.some(x => x[0] === h) ? h : VARIANTS.some(x => x[0] === q.get('variant')) ? q.get('variant') : 'E';
   if (S.variant === 'C') S.page = 'day';
   try { Object.assign(S, JSON.parse(q.get('state') || '{}')); } catch (e) { /* ?state= is a local screenshot aid only */ }
   render();
