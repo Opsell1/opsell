@@ -7,9 +7,11 @@ Run it with `npx serve prototypes/location-dashboard` (or open `index.html`).
 The bottom bar switches variant (← →; E is the default), persona (GM with two Locations, Manager, Senior-sup) and clock (Friday closing vs Saturday morning).
 State lives in memory; reload resets it.
 
-## Variant E: D updated with the decisions of Oct 18-19
+## Chosen design: variant E
 
-Variant E is the default and keeps D's design; flip back to D (← →) to see what changed.
+The founder locked in **variant E** on 2026-10-19: D's design updated with the decisions of Oct 18-19 and the founder's review of E.
+E opens by default; flip back to D (← →) to see what changed, and treat D, A, B and C as superseded alternatives.
+Where E and D disagree, E wins; D's notes below still hold for everything E does not change (Home, Closing Notes, the HR Flag review, light-touch forms).
 In `prototype.js` it is the `Variant E` block: `VariantE`, `tipsE`, `poolCardE`, `coverFormE`, `chanBlock` and `chanChart`.
 
 - **Sales Channel** ([#45](https://github.com/Opsell1/opsell/issues/45)): the Closing Report figures lead with Net sales as the largest number, then a Sales by channel bar and one row per channel with its orders, sales and share of the day.
@@ -31,9 +33,9 @@ In `prototype.js` it is the `Variant E` block: `VariantE`, `tipsE`, `poolCardE`,
 
 Try it as the GM: on Mass Ave Friday, Generate tips, wait for the Harri banner, Refresh hours, settle Lucy Tran's disagreement, add a Covering Shift for Maya Kim from 12:00 to 16:00, then open Court St Friday.
 
-## Chosen design: variant D
+## Previous pick: variant D
 
-The founder chose **variant D** on 2026-10-18; A, B and C stay in the file only as the alternatives that were rejected.
+The founder chose **variant D** on 2026-10-18 and replaced it with E on 2026-10-19; A, B and C stay in the file only as the alternatives that were rejected.
 In `prototype.js`, variant D is `VariantD`, `dashHome`, `reportD`, `tipsD`, `splitD` and `coverForm`.
 
 ### Home
