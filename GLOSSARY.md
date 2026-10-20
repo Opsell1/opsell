@@ -106,6 +106,10 @@ _Avoid_: Extra tips, cash jar, manual tips, other tips
 The split of one Tip Pool among the Employees eligible on that Business Day, in proportion to their hours weighted by the Position they worked.
 _Avoid_: Tip calculation, tip out, tip split
 
+**Covering Shift**:
+A shift an Employee works at a Location that is not one of their works-at Locations; it belongs to, and pools at, the Location where it was worked.
+_Avoid_: Loan, transfer, borrowed shift
+
 **Tip Policy**:
 A Location's effective-dated rules for its Tip Pool: which Positions are eligible, each Position's weight, and whether a tip credit is taken.
 _Avoid_: Tip rules, tip settings
