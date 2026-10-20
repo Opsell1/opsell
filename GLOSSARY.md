@@ -111,8 +111,12 @@ A shift an Employee works at a Location that is not one of their works-at Locati
 _Avoid_: Loan, transfer, borrowed shift
 
 **Tip Policy**:
-A Location's effective-dated rules for its Tip Pool: which Positions are eligible, each Position's weight, and whether a tip credit is taken.
+A Location's effective-dated rules for its Tip Pool: which Positions are eligible, each Position's weight, whether a tip credit is taken, and the length of any Tip Waiting Period.
 _Avoid_: Tip rules, tip settings
+
+**Tip Waiting Period**:
+The first days a newly hired Employee works in tip-eligible Positions, during which they take no share of any Tip Pool even though tips they earn stay in it.
+_Avoid_: Probation, training period, tip eligibility delay
 
 **Pay Period**:
 The Organization's recurring payroll window (weekly, biweekly or semimonthly) that groups Tip Distributions for export to payroll.
