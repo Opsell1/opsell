@@ -99,7 +99,7 @@ The tips a Location collects in one Business Day that are shared among its eligi
 _Avoid_: Tip jar, tip bucket, shift tips
 
 **Additional Tips**:
-Staff tips a Location received outside its POS on a Business Day, such as a counted tip jar or a catering tip check, each recorded with its amount, whether it is cash or non-cash, and its source, and added to that day's Tip Pool.
+Staff tips a Location received outside its POS on a Business Day, such as a counted tip jar or a catering tip check, each recorded with its amount and, optionally, where it came from, and added to that day's Tip Pool.
 _Avoid_: Extra tips, cash jar, manual tips, other tips
 
 **Tip Distribution**:
