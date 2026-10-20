@@ -46,5 +46,6 @@ export const ApiError = z
 export type Location = z.infer<typeof Location>;
 export type LocationList = z.infer<typeof LocationList>;
 export type Me = z.infer<typeof Me>;
+export type Role = z.infer<typeof Role>;
 export type ErrorCode = z.infer<typeof ErrorCode>;
 export type ApiError = z.infer<typeof ApiError>;

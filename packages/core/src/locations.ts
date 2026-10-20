@@ -3,7 +3,7 @@ import { asc, eq } from "drizzle-orm";
 
 export type LocationRecord = typeof locations.$inferSelect;
 
-/** The tenant's Locations, by name. Row-Level Security scopes them to the Organization. */
+/** The Organization's Locations, by name; Row-Level Security scopes them to it. */
 export function listLocations(tx: TenantTx): Promise<LocationRecord[]> {
   return tx.select().from(locations).orderBy(asc(locations.name));
 }

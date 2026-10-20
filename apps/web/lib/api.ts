@@ -10,17 +10,31 @@ export async function serverApi() {
   return createApiClient({ baseUrl: `${apiUrl()}/api`, headers: { cookie }, cache: "no-store" });
 }
 
-/** The signed-in User, or null without a session. Fetched once per request. */
-export const getMe = cache(async (): Promise<Me | null> => {
+export type Session =
+  | { status: "signed-in"; me: Me }
+  | { status: "signed-out" }
+  /** Signed in, but holding no Role in any Organization. */
+  | { status: "no-role" };
+
+/** Who is asking, fetched once per request. */
+export const getSession = cache(async (): Promise<Session> => {
   const { data, response } = await (await serverApi()).GET("/me");
-  if (response.status === 401 || response.status === 403) return null;
+  if (response.status === 401) return { status: "signed-out" };
+  if (response.status === 403) return { status: "no-role" };
   if (!data) throw new Error(`GET /me failed with ${response.status}`);
-  return data;
+  return { status: "signed-in", me: data };
 });
 
-/** The signed-in User; sends anyone else to sign in. */
+/** Sends a request the API refused for lack of a session or Role to the page that explains it. */
+export function redirectForStatus(status: number): void {
+  if (status === 401) redirect("/sign-in");
+  if (status === 403) redirect("/no-access");
+}
+
+/** The signed-in User; sends anyone else to sign in, or to the no-access page. */
 export async function requireMe(): Promise<Me> {
-  const me = await getMe();
-  if (!me) redirect("/sign-in");
-  return me;
+  const session = await getSession();
+  if (session.status === "signed-out") redirect("/sign-in");
+  if (session.status === "no-role") redirect("/no-access");
+  return session.me;
 }

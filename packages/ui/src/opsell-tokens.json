@@ -273,7 +273,10 @@
       "sans": "Geist, system-ui, -apple-system, \"Segoe UI\", sans-serif",
       "mono": "\"Geist Mono\", ui-monospace, \"SF Mono\", Menlo, monospace"
     },
-    "files": ["fonts/Geist-Variable.woff2", "fonts/GeistMono-Variable.woff2"]
+    "files": [
+      "fonts/Geist-Variable.woff2",
+      "fonts/GeistMono-Variable.woff2"
+    ]
   },
   "typography": {
     "kpi": {

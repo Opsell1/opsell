@@ -18,7 +18,11 @@
       "!**/src/generated",
       "!**/openapi.json",
       "!**/drizzle/meta",
-      "!packages/ui/src/generated"
+      "!packages/ui/src/format.ts",
+      "!packages/ui/src/status.ts",
+      "!packages/ui/src/opsell-tokens.json",
+      "!packages/ui/src/styles/opsell-tokens.css",
+      "!packages/ui/src/styles/opsell-tailwind.css"
     ]
   },
   "css": {

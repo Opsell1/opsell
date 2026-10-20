@@ -11,6 +11,10 @@ const CODE_TTL_SECONDS = 10 * 60;
  * Passwordless sign-in with an email one-time code (ADR 0002); SMS and passkeys come later.
  * Users are global (ADR 0010) and only existing Users can sign in. Each new session starts in
  * the User's oldest membership's Organization, which the API then uses as the tenant context.
+ *
+ * Better Auth stamps its own rows (sessions, codes, identity timestamps) with the system clock.
+ * Those are authentication bookkeeping, not business timestamps (ADR 0009), so the injected
+ * Clock does not move them: a test cannot expire a sign-in code by advancing a FakeClock.
  */
 export function createAuth(deps: Deps, config: AppConfig) {
   return betterAuth({

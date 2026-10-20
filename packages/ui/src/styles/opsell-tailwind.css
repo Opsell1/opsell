@@ -104,7 +104,7 @@
   --font-sans: Geist, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  --spacing: 4px; /* p-1 = 4px … p-16 = 64px, matching space-* */
+  --spacing: 4px;  /* p-1 = 4px … p-16 = 64px, matching space-* */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -112,11 +112,11 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
   --radius-icon: 22%;
-  --shadow-elev-card: var(--shadow-card); /* shadow-elev-card */
-  --shadow-elev-popover: var(--shadow-popover); /* shadow-elev-popover */
-  --shadow-elev-drawer: var(--shadow-drawer); /* shadow-elev-drawer */
-  --shadow-elev-modal: var(--shadow-modal); /* shadow-elev-modal */
-  --shadow-elev-focus: var(--shadow-focus); /* shadow-elev-focus */
+  --shadow-elev-card: var(--shadow-card);  /* shadow-elev-card */
+  --shadow-elev-popover: var(--shadow-popover);  /* shadow-elev-popover */
+  --shadow-elev-drawer: var(--shadow-drawer);  /* shadow-elev-drawer */
+  --shadow-elev-modal: var(--shadow-modal);  /* shadow-elev-modal */
+  --shadow-elev-focus: var(--shadow-focus);  /* shadow-elev-focus */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-enter: cubic-bezier(0, 0, 0.2, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);

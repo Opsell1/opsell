@@ -15,7 +15,7 @@ export interface OrganizationFixture {
   name: string;
   isDemo: boolean;
   /** Every scenario Organization has an Org Admin to sign in as. */
-  admin: UserFixture;
+  orgAdmin: UserFixture;
   locations: LocationRecord[];
 }
 
@@ -62,8 +62,8 @@ export class Scenario {
       .returning();
     if (!org) throw new Error("Organization was not created");
 
-    const admin = await this.user({ name: `Org Admin ${tag}` });
-    await this.membership(org.id, admin.id, "org_admin");
+    const orgAdmin = await this.user({ name: `Org Admin ${tag}` });
+    await this.membership(org.id, orgAdmin.id, "org_admin");
 
     const wanted: LocationInput[] =
       typeof input.locations === "number"
@@ -85,7 +85,7 @@ export class Scenario {
           .returning()
       : [];
 
-    return { id: org.id, name: org.name, isDemo: org.isDemo, admin, locations: created };
+    return { id: org.id, name: org.name, isDemo: org.isDemo, orgAdmin, locations: created };
   }
 
   async user(input: { name?: string; email?: string } = {}): Promise<UserFixture> {

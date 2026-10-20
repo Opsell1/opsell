@@ -1,6 +1,5 @@
-import { type Clock, type Deps, type JobDefinition, type JobEnvelope, runJob } from "@opsell/core";
-import { createPgBossJobs } from "@opsell/core/adapters";
-import { JOBS_SCHEMA } from "@opsell/db/admin";
+import { type Deps, type JobDefinition, type JobEnvelope, runJob } from "@opsell/core";
+import { JOBS_SCHEMA } from "@opsell/db";
 import { PgBoss } from "pg-boss";
 
 /** A pg-boss instance for tests: it sends and settles jobs but never polls or schedules. */
@@ -16,10 +15,6 @@ export async function startTestBoss(connectionString: string): Promise<PgBoss> {
   boss.on("error", (error) => console.error(error));
   await boss.start();
   return boss;
-}
-
-export function createTestJobs(boss: PgBoss, clock: Clock) {
-  return createPgBossJobs(boss, clock);
 }
 
 interface DueJob {

@@ -1,9 +1,21 @@
-import { Location, LocationList, LocationParams, Me } from "@opsell/contract";
-import { type Deps, getLocation, listLocations } from "@opsell/core";
+import {
+  type Role as ContractRole,
+  Location,
+  LocationList,
+  LocationParams,
+  Me,
+} from "@opsell/contract";
+import { type Deps, getLocation, listLocations, type Role } from "@opsell/core";
 import { toNodeHandler } from "better-auth/node";
 import express, { type ErrorRequestHandler } from "express";
 import { createAuth } from "./auth.ts";
-import { error, ok, tenantRoute } from "./tenant.ts";
+import { error, ok, send, tenantRoute } from "./tenant.ts";
+
+// The contract cannot import the database's role enum (web clients import the contract), so the
+// two lists of Roles are kept equal here, where both are visible.
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+const rolesMatch: Same<ContractRole, Role> = true;
+void rolesMatch;
 
 export interface AppConfig {
   /** The web app's public origin, the only one browsers call the API from. */
@@ -48,13 +60,11 @@ export function createApp(deps: Deps, config: AppConfig): express.Express {
   app.use("/api", api);
 
   app.use("/api", (_req, res) => {
-    const reply = error("not_found", "No such endpoint.");
-    res.status(reply.status).json(reply.body);
+    send(res, error("not_found", "No such endpoint."));
   });
   app.use(((err, _req, res, _next) => {
     console.error(err);
-    const reply = error("internal", "Something went wrong.");
-    res.status(reply.status).json(reply.body);
+    send(res, error("internal", "Something went wrong."));
   }) satisfies ErrorRequestHandler);
 
   return app;

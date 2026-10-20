@@ -32,7 +32,7 @@ describe("tenant isolation as the API role", () => {
   it("rejects inserting a Location into another Organization", async () => {
     const { a, b } = await twoOrganizations();
 
-    const insert = db.withTenant(a.id, a.admin.id, (tx) =>
+    const insert = db.withTenant(a.id, a.orgAdmin.id, (tx) =>
       tx.insert(locations).values({
         organizationId: b.id,
         name: "Planted",
@@ -44,7 +44,7 @@ describe("tenant isolation as the API role", () => {
     );
 
     await expect(insert).rejects.toMatchObject({ cause: rowLevelSecurityViolation });
-    const bNames = await db.withTenant(b.id, b.admin.id, async (tx) =>
+    const bNames = await db.withTenant(b.id, b.orgAdmin.id, async (tx) =>
       (await listLocations(tx)).map((l) => l.name),
     );
     expect(bNames).toEqual(["Pearl St"]);
@@ -53,7 +53,7 @@ describe("tenant isolation as the API role", () => {
   it("updates and deletes none of another Organization's Locations", async () => {
     const { a, b, bLocation } = await twoOrganizations();
 
-    const [updated, deleted] = await db.withTenant(a.id, a.admin.id, async (tx) => [
+    const [updated, deleted] = await db.withTenant(a.id, a.orgAdmin.id, async (tx) => [
       await tx
         .update(locations)
         .set({ name: "Renamed" })
@@ -64,7 +64,7 @@ describe("tenant isolation as the API role", () => {
 
     expect(updated).toEqual([]);
     expect(deleted).toEqual([]);
-    const bNames = await db.withTenant(b.id, b.admin.id, async (tx) =>
+    const bNames = await db.withTenant(b.id, b.orgAdmin.id, async (tx) =>
       (await listLocations(tx)).map((l) => l.name),
     );
     expect(bNames).toEqual(["Pearl St"]);
@@ -75,7 +75,7 @@ describe("tenant isolation as the API role", () => {
     const [aLocation] = a.locations;
     if (!aLocation) throw new Error("scenario created no Location");
 
-    const move = db.withTenant(a.id, a.admin.id, (tx) =>
+    const move = db.withTenant(a.id, a.orgAdmin.id, (tx) =>
       tx.update(locations).set({ organizationId: b.id }).where(eq(locations.id, aLocation.id)),
     );
 
@@ -85,7 +85,7 @@ describe("tenant isolation as the API role", () => {
   it("sees no tenant rows outside withTenant, even on a connection a tenant just used", async () => {
     const { a } = await twoOrganizations();
     // One pooled connection, so the second query reuses the first transaction's connection.
-    const inside = await db.withTenant(a.id, a.admin.id, (tx) => listLocations(tx));
+    const inside = await db.withTenant(a.id, a.orgAdmin.id, (tx) => listLocations(tx));
 
     const outside = await db.global.select().from(locations);
 
@@ -96,7 +96,7 @@ describe("tenant isolation as the API role", () => {
   it("never lets an Organization stop or start being a Demo Organization", async () => {
     const { a } = await twoOrganizations();
 
-    const flip = db.withTenant(a.id, a.admin.id, (tx) =>
+    const flip = db.withTenant(a.id, a.orgAdmin.id, (tx) =>
       tx.update(organizations).set({ isDemo: true }).where(eq(organizations.id, a.id)),
     );
 

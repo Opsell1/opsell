@@ -6,7 +6,6 @@
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles/opsell.css",
-    "./format": "./src/format.ts",
     "./status": "./src/status.ts",
     "./tokens.json": "./src/opsell-tokens.json"
   },

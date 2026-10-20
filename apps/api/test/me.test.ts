@@ -14,11 +14,11 @@ describe("GET /me", () => {
   it("describes the signed-in User, their Organization and Role", async () => {
     const org = await t.scenario.organization({ name: "Larkspur Bakehouse" });
 
-    const { data, response } = await (await t.signedInAs(org.admin)).GET("/me");
+    const { data, response } = await (await t.signedInAs(org.orgAdmin)).GET("/me");
 
     expect(response.status).toBe(200);
     expect(data).toEqual({
-      user: { id: org.admin.id, name: org.admin.name, email: org.admin.email },
+      user: { id: org.orgAdmin.id, name: org.orgAdmin.name, email: org.orgAdmin.email },
       organization: { id: org.id, name: "Larkspur Bakehouse", isDemo: false },
       role: "org_admin",
     });
@@ -27,9 +27,9 @@ describe("GET /me", () => {
   it("acts in one Organization for a User who holds Roles in two", async () => {
     const first = await t.scenario.organization({ locations: [{ name: "Mass Ave" }] });
     const second = await t.scenario.organization({ locations: [{ name: "South Lamar" }] });
-    await t.scenario.membership(second.id, first.admin.id, "org_admin");
+    await t.scenario.membership(second.id, first.orgAdmin.id, "org_admin");
 
-    const api = await t.signedInAs(first.admin);
+    const api = await t.signedInAs(first.orgAdmin);
     const me = await api.GET("/me");
     const locations = await api.GET("/locations");
 

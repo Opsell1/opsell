@@ -18,7 +18,7 @@ describe("GET /locations", () => {
     });
     await t.scenario.organization({ locations: [{ name: "Pearl St" }] });
 
-    const api = await t.signedInAs(larkspur.admin);
+    const api = await t.signedInAs(larkspur.orgAdmin);
     const { data, response } = await api.GET("/locations");
 
     expect(response.status).toBe(200);
@@ -49,7 +49,7 @@ describe("GET /locations/{locationId}", () => {
     const [lakeAve] = org.locations;
     if (!lakeAve) throw new Error("scenario created no Location");
 
-    const api = await t.signedInAs(org.admin);
+    const api = await t.signedInAs(org.orgAdmin);
     const { data, response } = await api.GET("/locations/{locationId}", {
       params: { path: { locationId: lakeAve.id } },
     });
@@ -64,7 +64,7 @@ describe("GET /locations/{locationId}", () => {
     const [theirLocation] = theirs.locations;
     if (!theirLocation) throw new Error("scenario created no Location");
 
-    const api = await t.signedInAs(mine.admin);
+    const api = await t.signedInAs(mine.orgAdmin);
     const { error, response } = await api.GET("/locations/{locationId}", {
       params: { path: { locationId: theirLocation.id } },
     });
@@ -75,7 +75,7 @@ describe("GET /locations/{locationId}", () => {
 
   it("answers 400 for an id that is not a UUID", async () => {
     const org = await t.scenario.organization();
-    const api = await t.signedInAs(org.admin);
+    const api = await t.signedInAs(org.orgAdmin);
 
     const { response } = await api.GET("/locations/{locationId}", {
       params: { path: { locationId: "not-a-uuid" } },

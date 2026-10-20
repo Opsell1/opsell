@@ -10,11 +10,13 @@ test("an Org Admin signs in with an email code and sees only their Organization'
   await page.goto("/locations");
   await expect(page).toHaveURL(/\/sign-in$/);
 
-  await page.getByLabel("Email").fill(larkspur.admin.email);
+  await page.getByLabel("Email").fill(larkspur.orgAdmin.email);
   // Mailpit timestamps come from another clock; allow a little skew.
   const sentAfter = new Date(Date.now() - 5_000);
   await page.getByRole("button", { name: "Send code" }).click();
-  await page.getByLabel("Sign-in code").fill(await signInCodeFor(larkspur.admin.email, sentAfter));
+  await page
+    .getByLabel("Sign-in code")
+    .fill(await signInCodeFor(larkspur.orgAdmin.email, sentAfter));
   await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect(page).toHaveURL(/\/locations$/);

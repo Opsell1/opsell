@@ -1,15 +1,14 @@
 import { EmptyState, Page, PageHead } from "@opsell/ui";
 import { Store } from "lucide-react";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { serverApi } from "@/lib/api";
+import { redirectForStatus, serverApi } from "@/lib/api";
 import { LocationsTable } from "./locations-table";
 
 export const metadata: Metadata = { title: "Locations" };
 
 export default async function LocationsPage() {
   const { data, response } = await (await serverApi()).GET("/locations");
-  if (response.status === 401) redirect("/sign-in");
+  redirectForStatus(response.status);
   if (!data) throw new Error(`GET /locations failed with ${response.status}`);
   const { locations } = data;
 

@@ -2,7 +2,7 @@ import type { ApiError, ErrorCode } from "@opsell/contract";
 import { type Deps, getMembership, type Membership } from "@opsell/core";
 import type { TenantTx } from "@opsell/db";
 import { fromNodeHeaders } from "better-auth/node";
-import type { Request, RequestHandler } from "express";
+import type { Request, RequestHandler, Response } from "express";
 import type { Auth } from "./auth.ts";
 
 export interface Reply {
@@ -30,6 +30,10 @@ export function error(code: ErrorCode, message: string): Reply {
 
 export const ok = (body: unknown): Reply => ({ status: 200, body });
 
+export function send(res: Response, reply: Reply): void {
+  res.status(reply.status).json(reply.body);
+}
+
 /**
  * Wraps a route so it runs inside withTenant for the session's active Organization (ADR 0011),
  * only for a User who holds a Role there. The reply is sent after the transaction commits, so a
@@ -52,6 +56,6 @@ export function tenantRoute(
         return handler({ tx, membership, req });
       });
     })();
-    res.status(reply.status).json(reply.body);
+    send(res, reply);
   };
 }

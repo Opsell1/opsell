@@ -18,7 +18,7 @@ export function createPgBossJobs(boss: PgBoss, clock: Clock): Jobs {
   };
 }
 
-/** Reads the tenant context back from the transaction, so a job cannot name another tenant. */
+/** Reads the tenant context back from the transaction, so a job cannot name another Organization. */
 async function tenantOf(tx: TenantTx): Promise<Omit<JobEnvelope, "data">> {
   const { rows } = await tx.$client.query<{ organization_id: string; user_id: string | null }>(
     `select current_setting('app.organization_id') as organization_id,

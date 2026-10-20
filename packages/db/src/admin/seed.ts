@@ -10,7 +10,7 @@ export const SEED = {
   larkspur: {
     id: "0a6f8f1e-5b5d-4c1e-9a54-6d2b7f0c1a01",
     name: "Larkspur Bakehouse",
-    admin: {
+    orgAdmin: {
       id: "5d0c6a2e-8f3b-4b8e-a6f1-2c9d7e4b1a01",
       name: "Dana Whitfield",
       email: "dana@larkspur.example",
@@ -26,7 +26,7 @@ export const SEED = {
   juniper: {
     id: "0a6f8f1e-5b5d-4c1e-9a54-6d2b7f0c1a02",
     name: "Juniper Coffee",
-    admin: {
+    orgAdmin: {
       id: "5d0c6a2e-8f3b-4b8e-a6f1-2c9d7e4b1a02",
       name: "Riley Chen",
       email: "riley@juniper.example",
@@ -51,13 +51,13 @@ export async function seed(ownerUrl: string, now: Date = new Date()): Promise<vo
           .onConflictDoNothing();
         await tx
           .insert(schema.users)
-          .values({ ...org.admin, emailVerified: true, createdAt: now, updatedAt: now })
+          .values({ ...org.orgAdmin, emailVerified: true, createdAt: now, updatedAt: now })
           .onConflictDoNothing();
         await tx
           .insert(schema.memberships)
           .values({
             organizationId: org.id,
-            userId: org.admin.id,
+            userId: org.orgAdmin.id,
             role: "org_admin",
             createdAt: now,
           })

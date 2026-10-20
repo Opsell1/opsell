@@ -1,9 +1,9 @@
 import { createDatabase, JOBS_SCHEMA } from "@opsell/db";
 import { PgBoss } from "pg-boss";
 import type { Deps } from "../ports.ts";
-import { createClaudeClient, systemClock, unconfiguredSms } from "./index.ts";
 import { createPgBossJobs } from "./pg-boss-jobs.ts";
 import { createSmtpMailer } from "./smtp-mailer.ts";
+import { createClaudeClient, systemClock, unconfiguredSms } from "./system.ts";
 
 export interface RuntimeConfig {
   /** A role without BYPASSRLS: the API's or the worker's. */
