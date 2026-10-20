@@ -1,0 +1,24 @@
+{
+  "name": "@opsell/contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0",
+    "zod": "4.6.5",
+    "zod-openapi": "6.0.2"
+  },
+  "devDependencies": {
+    "@opsell/config": "workspace:*",
+    "@types/node": "24.19.1",
+    "typescript": "5.9.3",
+    "openapi-typescript": "7.13.0"
+  }
+}

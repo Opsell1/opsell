@@ -1,0 +1,28 @@
+# Local services for `pnpm dev` and Playwright. Roles and databases are created by
+# `pnpm db:bootstrap`, the same way CI does it, so there are no init scripts here.
+name: opsell
+
+services:
+  postgres:
+    image: postgres:18.1-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  postgres-data:

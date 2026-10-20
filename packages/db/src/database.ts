@@ -1,0 +1,86 @@
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
+import pg from "pg";
+import * as schema from "./schema/index.ts";
+
+export type Schema = typeof schema;
+
+declare const tenantBrand: unique symbol;
+declare const userBrand: unique symbol;
+
+/**
+ * A transaction whose tenant context is set (ADR 0011). Domain functions take it as their first
+ * argument, so a query cannot run outside the tenant context without the type checker noticing.
+ * `$client` is the transaction's connection, for libraries such as pg-boss that must join it.
+ */
+export type TenantTx = NodePgDatabase<Schema> & {
+  readonly $client: pg.PoolClient;
+  readonly [tenantBrand]: true;
+};
+
+/** A transaction that knows the signed-in User but no Organization yet, to list memberships. */
+export type UserTx = NodePgDatabase<Schema> & {
+  readonly $client: pg.PoolClient;
+  readonly [userBrand]: true;
+};
+
+export interface Database {
+  /**
+   * Runs `fn` in a transaction with the tenant context set transaction-locally, so it can never
+   * outlive the transaction on a pooled connection. `userId` is null for system work.
+   */
+  withTenant<T>(
+    organizationId: string,
+    userId: string | null,
+    fn: (tx: TenantTx) => Promise<T>,
+  ): Promise<T>;
+  /** Runs `fn` in a transaction where only the User is known. */
+  withUser<T>(userId: string, fn: (tx: UserTx) => Promise<T>): Promise<T>;
+  /**
+   * Queries outside any tenant context, for the global identity tables (ADR 0010). Row-Level
+   * Security returns no tenant rows here.
+   */
+  readonly global: NodePgDatabase<Schema>;
+  readonly pool: pg.Pool;
+  close(): Promise<void>;
+}
+
+export function createDatabase(connectionString: string, options: { max?: number } = {}): Database {
+  const pool = new pg.Pool({ connectionString, max: options.max ?? 10 });
+
+  async function inTransaction<T, Tx>(
+    settings: Record<string, string | null>,
+    fn: (tx: Tx) => Promise<T>,
+  ): Promise<T> {
+    const client = await pool.connect();
+    let broken = false;
+    try {
+      await client.query("begin");
+      for (const [name, value] of Object.entries(settings)) {
+        await client.query("select set_config($1, $2, true)", [name, value ?? ""]);
+      }
+      const tx = drizzle({ client, schema }) as unknown as Tx;
+      const result = await fn(tx);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      try {
+        await client.query("rollback");
+      } catch {
+        broken = true;
+      }
+      throw error;
+    } finally {
+      // A connection whose rollback failed is in an unknown state; destroy it rather than reuse it.
+      client.release(broken);
+    }
+  }
+
+  return {
+    withTenant: (organizationId, userId, fn) =>
+      inTransaction({ "app.organization_id": organizationId, "app.user_id": userId }, fn),
+    withUser: (userId, fn) => inTransaction({ "app.user_id": userId }, fn),
+    global: drizzle({ client: pool, schema }),
+    pool,
+    close: () => pool.end(),
+  };
+}
