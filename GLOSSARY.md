@@ -114,6 +114,14 @@ _Avoid_: Loan, transfer, borrowed shift
 A Location's effective-dated rules for its Tip Pool: which Positions are eligible, each Position's weight, whether a tip credit is taken, and the length of any Tip Waiting Period.
 _Avoid_: Tip rules, tip settings
 
+**Tip Policy Notice**:
+The written statement of one version of a Location's Tip Policy that Employees who may share in its Tip Pool receive before that version takes effect.
+_Avoid_: Tip policy document, tip disclosure, tip agreement
+
+**Tip Policy Acknowledgment**:
+An Employee's signed confirmation that they received a Tip Policy Notice, which records receipt rather than agreement.
+_Avoid_: Tip policy signature, consent, agreement
+
 **Tip Waiting Period**:
 The first days a newly hired Employee works in tip-eligible Positions, during which they take no share of any Tip Pool even though tips they earn stay in it.
 _Avoid_: Probation, training period, tip eligibility delay
