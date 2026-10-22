@@ -11,3 +11,6 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 next-env.d.ts
+
+# Isolated checkouts made by Claude Code sessions
+.claude/worktrees/
