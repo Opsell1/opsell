@@ -1,0 +1,10 @@
+{
+  "extends": "@opsell/config/tsconfig.react.json",
+  "compilerOptions": {
+    "types": [],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src"],
+  // format.ts is generated and fails noUncheckedIndexedAccess; see src/DESIGN-EXPORT.md.
+  "exclude": ["src/format.ts"]
+}

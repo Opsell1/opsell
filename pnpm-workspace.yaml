@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Only install versions that have been public for two weeks.
+minimumReleaseAge: 20160
+
+allowBuilds:
+  esbuild: true
+  sharp: true
