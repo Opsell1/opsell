@@ -2,17 +2,28 @@
 
 Operations software for multi-location restaurant groups.
 Domain language lives in [GLOSSARY.md](GLOSSARY.md) and decisions in [docs/adr](docs/adr).
+For a stage-by-stage tour of how the pieces fit together, read [docs/walking-skeleton.md](docs/walking-skeleton.md).
 
 ## Run it locally
 
-You need Node 24 (see `.nvmrc`), pnpm 11 (`corepack enable`) and Docker.
+You need Node 24 (see `.nvmrc`), pnpm 11 (`corepack enable`), and Postgres 18 and Mailpit.
+On a Mac, run them natively with Homebrew, which is much lighter than Docker Desktop (one time):
+
+```sh
+brew install postgresql@18 mailpit
+brew services start postgresql@18 && brew services start mailpit
+$(brew --prefix postgresql@18)/bin/createuser -s postgres
+```
+
+Then:
 
 ```sh
 pnpm install
 pnpm dev
 ```
 
-`pnpm dev` starts Postgres and Mailpit in Docker, creates the database roles, migrates and seeds, then runs the API, worker and web app.
+`pnpm dev` uses Postgres and Mailpit if they are already running, and otherwise starts the missing ones in Docker.
+It then creates the database roles, migrates and seeds, and runs the API, worker and web app.
 Open http://localhost:3000 and sign in as `dana@larkspur.example` (Larkspur Bakehouse) or `riley@juniper.example` (Juniper Coffee).
 Sign-in codes arrive in Mailpit at http://localhost:8025.
 
@@ -35,7 +46,7 @@ Sign-in codes arrive in Mailpit at http://localhost:8025.
 ```sh
 pnpm typecheck   # every package
 pnpm lint        # Biome
-pnpm test        # Vitest unit and contract tests against real Postgres (needs `docker compose up -d`)
+pnpm test        # Vitest unit and contract tests against real Postgres (needs Postgres running)
 pnpm build && pnpm test:e2e   # Playwright against production builds (needs a migrated, seeded database)
 ```
 
