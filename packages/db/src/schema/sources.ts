@@ -12,7 +12,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
-import { employees, positions, tenantPolicy } from "./people.ts";
+import { employees, positions, tenantPolicies } from "./people.ts";
 import { dataSource, locations, organizations } from "./tenancy.ts";
 
 export const fulfillment = pgEnum("fulfillment", ["counter", "pickup", "delivery"]);
@@ -62,7 +62,7 @@ export const salesOrders = pgTable(
   (t) => [
     unique("sales_orders_source_key").on(t.organizationId, t.source, t.externalId),
     index("sales_orders_location_day_idx").on(t.locationId, t.businessDate),
-    tenantPolicy("sales_orders_tenant", t.organizationId),
+    ...tenantPolicies("sales_orders", t.organizationId),
   ],
 );
 
@@ -83,7 +83,7 @@ export const timeEntries = pgTable(
   (t) => [
     unique("time_entries_source_key").on(t.organizationId, t.source, t.externalId),
     index("time_entries_location_day_idx").on(t.locationId, t.businessDate),
-    tenantPolicy("time_entries_tenant", t.organizationId),
+    ...tenantPolicies("time_entries", t.organizationId),
   ],
 );
 
@@ -103,7 +103,7 @@ export const tipEntries = pgTable(
   (t) => [
     unique("tip_entries_source_key").on(t.organizationId, t.source, t.externalId),
     index("tip_entries_location_day_idx").on(t.locationId, t.businessDate),
-    tenantPolicy("tip_entries_tenant", t.organizationId),
+    ...tenantPolicies("tip_entries", t.organizationId),
   ],
 );
 
@@ -124,6 +124,6 @@ export const sourceBackfills = pgTable(
   },
   (t) => [
     index("source_backfills_organization_id_idx").on(t.organizationId),
-    tenantPolicy("source_backfills_tenant", t.organizationId),
+    ...tenantPolicies("source_backfills", t.organizationId),
   ],
 );

@@ -51,9 +51,9 @@ export interface Database {
   /** Runs `fn` as a Platform Staff member, outside every Organization. */
   withPlatform<T>(staffId: string, fn: (tx: PlatformTx) => Promise<T>): Promise<T>;
   /**
-   * Runs `fn` as a Platform Staff member inside `organizationId`'s tenant context. Callers must
-   * check what the staff member may do there: Platform Staff have no standing access to a regular
-   * Organization's data (ADR 0006).
+   * Runs `fn` as a Platform Staff member inside `organizationId`'s tenant context. Row-Level
+   * Security shows and accepts rows only if that Organization is a Demo Organization: Platform
+   * Staff have no standing access to a regular Organization's data (ADR 0006).
    */
   withPlatformTenant<T>(
     staffId: string,

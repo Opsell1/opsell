@@ -13,5 +13,6 @@ We chose a separate origin over a `/console` section of the web app so that staf
 ## Consequences
 
 - The console has its own `/api` proxy (ADR 0012), and `CONSOLE_ORIGIN` names its public origin, where passkeys are bound; changing that host means re-enrolling every passkey.
-- Every console action is written to the append-only platform audit log in the same transaction as the action, with its IP address resolved the same way for every entry.
+- Every console action is written to the append-only platform audit log, with its IP address resolved the same way for every entry.
+  Actions on Opsell's own records commit in the same transaction as their entry; sign-ins and passkey enrollments are written right after Better Auth's own write, which cannot join that transaction.
 - A lost passkey is replaced by issuing a new enrollment link; whoever can run the command already holds production credentials.

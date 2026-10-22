@@ -109,6 +109,48 @@ describe("the mock data source", () => {
   });
 });
 
+describe("a Platform Staff context", () => {
+  it("sees and writes none of a regular Organization's rows, whatever id the code passes", async () => {
+    const staff = await scenario.staff();
+    const regular = await scenario.organization({ locations: [{ name: "Real Store" }] });
+    const inRegular = <T>(fn: Parameters<typeof db.withPlatformTenant<T>>[2]) =>
+      db.withPlatformTenant(staff.id, regular.id, fn);
+
+    const seen = await inRegular(async (tx) => ({
+      organizations: await tx.select().from(organizations),
+      locations: await tx.select().from(locations),
+    }));
+    const insert = () =>
+      inRegular((tx) =>
+        tx.insert(locations).values({
+          organizationId: regular.id,
+          name: "Planted by staff",
+          city: "Boston",
+          state: "MA",
+          timeZone: "America/New_York",
+          createdAt: clock.now(),
+        }),
+      );
+
+    // Staff see Demo Organizations from anywhere, but never the regular one they pointed at.
+    expect(seen.organizations.map((o) => o.id)).not.toContain(regular.id);
+    expect(seen.organizations.every((o) => o.isDemo)).toBe(true);
+    expect(seen.locations).toEqual([]);
+    await expect(insert()).rejects.toMatchObject({ cause: insufficientPrivilege });
+  });
+
+  it("works inside a Demo Organization", async () => {
+    const staff = await scenario.staff();
+    const demo = await scenario.organization({ isDemo: true, locations: [{ name: "Elm St" }] });
+
+    const names = await db.withPlatformTenant(staff.id, demo.id, async (tx) =>
+      (await tx.select().from(locations)).map((l) => l.name),
+    );
+
+    expect(names).toEqual(["Elm St"]);
+  });
+});
+
 describe("the platform audit log", () => {
   it("is append-only for the API role", async () => {
     const staff = await scenario.staff();

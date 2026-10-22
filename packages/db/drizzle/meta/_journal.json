@@ -19,15 +19,22 @@
     {
       "idx": 2,
       "version": "7",
-      "when": 1792635088431,
-      "tag": "0002_platform_console",
+      "when": 1792636668080,
+      "tag": "0002_is_demo_organization",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "7",
-      "when": 1792635089118,
-      "tag": "0003_demo_guards_and_append_only",
+      "when": 1792636668798,
+      "tag": "0003_platform_console",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792636669497,
+      "tag": "0004_demo_guards_and_append_only",
       "breakpoints": true
     }
   ]

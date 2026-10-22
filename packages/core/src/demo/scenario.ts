@@ -17,7 +17,7 @@ import { createRandom, type Random } from "./random.ts";
 export interface DemoJobSpec {
   name: string;
   house: "front" | "back";
-  /** Local shift windows such as "06:00-11:30"; the day's crew takes them in turn. */
+  /** Local shift windows such as "06:00-11:30"; the people on shift that day take them in turn. */
   shifts: string[];
 }
 
@@ -477,7 +477,7 @@ function buildShifts(
     const jobExternalId = jobIdByName.get(job.name);
     const headcount = store.staffing[job.name] ?? 0;
     if (!jobExternalId || headcount === 0) continue;
-    const crew = random
+    const onShift = random
       .shuffle(
         people.filter(
           (p) =>
@@ -488,7 +488,7 @@ function buildShifts(
       )
       .slice(0, Math.max(1, Math.round(headcount * 0.6)));
 
-    crew.forEach((person, i) => {
+    onShift.forEach((person, i) => {
       const window = job.shifts[i % job.shifts.length] ?? "09:00-15:00";
       const [start = "09:00", end = "15:00"] = window.split("-");
       // Clock-ins can run early, never past the previous Business Day's cutoff.

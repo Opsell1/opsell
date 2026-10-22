@@ -4,6 +4,7 @@ import {
   consumeEnrollmentToken,
   type Deps,
   findStaffByEnrollmentToken,
+  type PlatformAction,
   type RequestOrigin,
   recordPlatformAction,
 } from "@opsell/core";
@@ -19,6 +20,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import type { AppConfig } from "./app.ts";
 
 const SESSION_HOURS = 12;
+const ENROLLMENT_REFUSED = "This enrollment link is invalid, used or expired.";
 
 /**
  * How the console resolves a client's IP address, for its sessions and every audit entry alike.
@@ -46,7 +48,7 @@ export function requestOriginOf(headers: Headers | undefined): RequestOrigin {
 export function createStaffAuth(deps: Deps, config: AppConfig) {
   const record = (
     staffId: string,
-    action: "staff.signed_in" | "staff.passkey_enrolled",
+    action: Extract<PlatformAction, `staff.${string}`>,
     origin: RequestOrigin,
   ) =>
     deps.db.withPlatform(staffId, (tx) =>
@@ -111,7 +113,7 @@ export function createStaffAuth(deps: Deps, config: AppConfig) {
               : null;
             if (!staff) {
               throw new APIError("BAD_REQUEST", {
-                message: "This enrollment link is invalid, used or expired.",
+                message: ENROLLMENT_REFUSED,
               });
             }
             return { id: staff.id, name: staff.email, displayName: staff.name };
@@ -122,7 +124,7 @@ export function createStaffAuth(deps: Deps, config: AppConfig) {
             const staffId = await consumeEnrollmentToken(deps.db.global, context, deps.clock.now());
             if (staffId !== user.id) {
               throw new APIError("BAD_REQUEST", {
-                message: "This enrollment link is invalid, used or expired.",
+                message: ENROLLMENT_REFUSED,
               });
             }
             await record(staffId, "staff.passkey_enrolled", requestOriginOf(ctx.headers));

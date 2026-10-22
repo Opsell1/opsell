@@ -1,6 +1,6 @@
 {
-  "id": "0c0656eb-42e4-4c2b-9afe-1d38000867a4",
-  "prevId": "de25b322-b00d-4ea7-bb33-f9f566ee395b",
+  "id": "d3d81d42-5a6c-4978-9582-ff753f399218",
+  "prevId": "5a8502be-f17b-4af4-afda-bcbb35534693",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -100,24 +100,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "accounts_user_id_users_id_fk": {
           "name": "accounts_user_id_users_id_fk",
           "tableFrom": "accounts",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -198,34 +198,34 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "sessions_user_id_users_id_fk": {
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "sessions_token_unique": {
           "name": "sessions_token_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -286,10 +286,10 @@
       "uniqueConstraints": {
         "users_email_unique": {
           "name": "users_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -350,9 +350,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -397,50 +397,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "employee_locations_organization_id_organizations_id_fk": {
           "name": "employee_locations_organization_id_organizations_id_fk",
           "tableFrom": "employee_locations",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "employee_locations_employee_id_employees_id_fk": {
           "name": "employee_locations_employee_id_employees_id_fk",
           "tableFrom": "employee_locations",
+          "tableTo": "employees",
           "columnsFrom": [
             "employee_id"
           ],
-          "tableTo": "employees",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "employee_locations_location_id_locations_id_fk": {
           "name": "employee_locations_location_id_locations_id_fk",
           "tableFrom": "employee_locations",
+          "tableTo": "locations",
           "columnsFrom": [
             "location_id"
           ],
-          "tableTo": "locations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -463,6 +463,16 @@
           ],
           "using": "\"employee_locations\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"employee_locations\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "employee_locations_staff_only_in_demo": {
+          "name": "employee_locations_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"employee_locations\".\"organization_id\")",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"employee_locations\".\"organization_id\")"
         }
       },
       "checkConstraints": {},
@@ -522,27 +532,27 @@
         "employees_organization_id_organizations_id_fk": {
           "name": "employees_organization_id_organizations_id_fk",
           "tableFrom": "employees",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "employees_source_key": {
           "name": "employees_source_key",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "source",
             "external_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -555,6 +565,16 @@
           ],
           "using": "\"employees\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"employees\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "employees_staff_only_in_demo": {
+          "name": "employees_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"employees\".\"organization_id\")",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"employees\".\"organization_id\")"
         }
       },
       "checkConstraints": {},
@@ -615,35 +635,35 @@
         "positions_organization_id_organizations_id_fk": {
           "name": "positions_organization_id_organizations_id_fk",
           "tableFrom": "positions",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "positions_organization_name_key": {
           "name": "positions_organization_name_key",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "name"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "positions_source_key": {
           "name": "positions_source_key",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "source",
             "external_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -656,6 +676,16 @@
           ],
           "using": "\"positions\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"positions\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "positions_staff_only_in_demo": {
+          "name": "positions_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"positions\".\"organization_id\")",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"positions\".\"organization_id\")"
         }
       },
       "checkConstraints": {},
@@ -678,15 +708,15 @@
           "primaryKey": false,
           "notNull": true,
           "identity": {
+            "type": "always",
             "name": "platform_audit_log_sequence_seq",
+            "schema": "public",
             "increment": "1",
+            "startWith": "1",
             "minValue": "1",
             "maxValue": "9223372036854775807",
-            "startWith": "1",
             "cache": "1",
-            "cycle": false,
-            "schema": "public",
-            "type": "always"
+            "cycle": false
           }
         },
         "staff_id": {
@@ -744,37 +774,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "platform_audit_log_staff_id_platform_staff_id_fk": {
           "name": "platform_audit_log_staff_id_platform_staff_id_fk",
           "tableFrom": "platform_audit_log",
+          "tableTo": "platform_staff",
           "columnsFrom": [
             "staff_id"
           ],
-          "tableTo": "platform_staff",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "platform_audit_log_organization_id_organizations_id_fk": {
           "name": "platform_audit_log_organization_id_organizations_id_fk",
           "tableFrom": "platform_audit_log",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -856,10 +886,10 @@
       "uniqueConstraints": {
         "platform_staff_email_unique": {
           "name": "platform_staff_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -962,24 +992,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "platform_staff_accounts_staff_id_platform_staff_id_fk": {
           "name": "platform_staff_accounts_staff_id_platform_staff_id_fk",
           "tableFrom": "platform_staff_accounts",
+          "tableTo": "platform_staff",
           "columnsFrom": [
             "staff_id"
           ],
-          "tableTo": "platform_staff",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1042,34 +1072,34 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "platform_staff_enrollments_staff_id_platform_staff_id_fk": {
           "name": "platform_staff_enrollments_staff_id_platform_staff_id_fk",
           "tableFrom": "platform_staff_enrollments",
+          "tableTo": "platform_staff",
           "columnsFrom": [
             "staff_id"
           ],
-          "tableTo": "platform_staff",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "platform_staff_enrollments_token_hash_unique": {
           "name": "platform_staff_enrollments_token_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "token_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1160,34 +1190,34 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "platform_staff_passkeys_staff_id_platform_staff_id_fk": {
           "name": "platform_staff_passkeys_staff_id_platform_staff_id_fk",
           "tableFrom": "platform_staff_passkeys",
+          "tableTo": "platform_staff",
           "columnsFrom": [
             "staff_id"
           ],
-          "tableTo": "platform_staff",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "platform_staff_passkeys_credential_id_unique": {
           "name": "platform_staff_passkeys_credential_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "credential_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1260,34 +1290,34 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "platform_staff_sessions_staff_id_platform_staff_id_fk": {
           "name": "platform_staff_sessions_staff_id_platform_staff_id_fk",
           "tableFrom": "platform_staff_sessions",
+          "tableTo": "platform_staff",
           "columnsFrom": [
             "staff_id"
           ],
-          "tableTo": "platform_staff",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "platform_staff_sessions_token_unique": {
           "name": "platform_staff_sessions_token_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1348,9 +1378,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -1513,49 +1543,49 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "sales_orders_organization_id_organizations_id_fk": {
           "name": "sales_orders_organization_id_organizations_id_fk",
           "tableFrom": "sales_orders",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "sales_orders_location_id_locations_id_fk": {
           "name": "sales_orders_location_id_locations_id_fk",
           "tableFrom": "sales_orders",
+          "tableTo": "locations",
           "columnsFrom": [
             "location_id"
           ],
-          "tableTo": "locations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "sales_orders_source_key": {
           "name": "sales_orders_source_key",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "source",
             "external_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1568,6 +1598,16 @@
           ],
           "using": "\"sales_orders\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"sales_orders\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "sales_orders_staff_only_in_demo": {
+          "name": "sales_orders_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"sales_orders\".\"organization_id\")",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"sales_orders\".\"organization_id\")"
         }
       },
       "checkConstraints": {},
@@ -1634,24 +1674,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "source_backfills_organization_id_organizations_id_fk": {
           "name": "source_backfills_organization_id_organizations_id_fk",
           "tableFrom": "source_backfills",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1666,6 +1706,16 @@
           ],
           "using": "\"source_backfills\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"source_backfills\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "source_backfills_staff_only_in_demo": {
+          "name": "source_backfills_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"source_backfills\".\"organization_id\")",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"source_backfills\".\"organization_id\")"
         }
       },
       "checkConstraints": {},
@@ -1775,75 +1825,75 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "time_entries_organization_id_organizations_id_fk": {
           "name": "time_entries_organization_id_organizations_id_fk",
           "tableFrom": "time_entries",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "time_entries_location_id_locations_id_fk": {
           "name": "time_entries_location_id_locations_id_fk",
           "tableFrom": "time_entries",
+          "tableTo": "locations",
           "columnsFrom": [
             "location_id"
           ],
-          "tableTo": "locations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "time_entries_employee_id_employees_id_fk": {
           "name": "time_entries_employee_id_employees_id_fk",
           "tableFrom": "time_entries",
+          "tableTo": "employees",
           "columnsFrom": [
             "employee_id"
           ],
-          "tableTo": "employees",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "time_entries_position_id_positions_id_fk": {
           "name": "time_entries_position_id_positions_id_fk",
           "tableFrom": "time_entries",
+          "tableTo": "positions",
           "columnsFrom": [
             "position_id"
           ],
-          "tableTo": "positions",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "time_entries_source_key": {
           "name": "time_entries_source_key",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "source",
             "external_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -1856,6 +1906,16 @@
           ],
           "using": "\"time_entries\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"time_entries\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "time_entries_staff_only_in_demo": {
+          "name": "time_entries_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"time_entries\".\"organization_id\")",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"time_entries\".\"organization_id\")"
         }
       },
       "checkConstraints": {},
@@ -1972,62 +2032,62 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "tip_entries_organization_id_organizations_id_fk": {
           "name": "tip_entries_organization_id_organizations_id_fk",
           "tableFrom": "tip_entries",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "tip_entries_location_id_locations_id_fk": {
           "name": "tip_entries_location_id_locations_id_fk",
           "tableFrom": "tip_entries",
+          "tableTo": "locations",
           "columnsFrom": [
             "location_id"
           ],
-          "tableTo": "locations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "tip_entries_employee_id_employees_id_fk": {
           "name": "tip_entries_employee_id_employees_id_fk",
           "tableFrom": "tip_entries",
+          "tableTo": "employees",
           "columnsFrom": [
             "employee_id"
           ],
-          "tableTo": "employees",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "tip_entries_source_key": {
           "name": "tip_entries_source_key",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "source",
             "external_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -2040,6 +2100,16 @@
           ],
           "using": "\"tip_entries\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"tip_entries\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "tip_entries_staff_only_in_demo": {
+          "name": "tip_entries_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"tip_entries\".\"organization_id\")",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"tip_entries\".\"organization_id\")"
         }
       },
       "checkConstraints": {},
@@ -2111,35 +2181,35 @@
         "locations_organization_id_organizations_id_fk": {
           "name": "locations_organization_id_organizations_id_fk",
           "tableFrom": "locations",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "locations_organization_name_key": {
           "name": "locations_organization_name_key",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "name"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "locations_source_key": {
           "name": "locations_source_key",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "source",
             "external_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -2152,6 +2222,16 @@
           ],
           "using": "\"locations\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"locations\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "locations_staff_only_in_demo": {
+          "name": "locations_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"locations\".\"organization_id\")",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"locations\".\"organization_id\")"
         }
       },
       "checkConstraints": {},
@@ -2206,48 +2286,48 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "memberships_organization_id_organizations_id_fk": {
           "name": "memberships_organization_id_organizations_id_fk",
           "tableFrom": "memberships",
+          "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organizations",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "memberships_user_id_users_id_fk": {
           "name": "memberships_user_id_users_id_fk",
           "tableFrom": "memberships",
+          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "memberships_organization_user_key": {
           "name": "memberships_organization_user_key",
+          "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "user_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {
@@ -2269,6 +2349,16 @@
           ],
           "using": "\"memberships\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"memberships\".\"organization_id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "memberships_staff_only_in_demo": {
+          "name": "memberships_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"memberships\".\"organization_id\")",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or is_demo_organization(\"memberships\".\"organization_id\")"
         }
       },
       "checkConstraints": {},
@@ -2351,6 +2441,16 @@
           ],
           "using": "\"organizations\".\"id\" = nullif(current_setting('app.organization_id', true), '')::uuid",
           "withCheck": "\"organizations\".\"id\" = nullif(current_setting('app.organization_id', true), '')::uuid"
+        },
+        "organizations_staff_only_in_demo": {
+          "name": "organizations_staff_only_in_demo",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "nullif(current_setting('app.staff_id', true), '')::uuid is null or \"organizations\".\"is_demo\"",
+          "withCheck": "nullif(current_setting('app.staff_id', true), '')::uuid is null or \"organizations\".\"is_demo\""
         }
       },
       "checkConstraints": {
@@ -2430,10 +2530,10 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

@@ -1,6 +1,7 @@
-// Forwards the browser's /api calls to the Express API, so sign-in cookies are first-party to
-// the web origin and the browser needs no CORS. The API's address is read at runtime, so one
-// image runs in any environment. Next.js never handles the data itself (ADR 0004).
+// Forwards the browser's /api calls to the Express API, so the staff session cookie is
+// first-party to the console origin and the browser needs no CORS (ADR 0012, ADR 0013). The
+// API's address is read at runtime, so one image runs in any environment. Next.js never handles
+// the data itself (ADR 0004).
 import type { NextRequest } from "next/server";
 import { apiUrl } from "@/lib/api-url";
 

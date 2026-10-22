@@ -13,15 +13,26 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
-import { currentOrganizationId, dataSource, locations, organizations } from "./tenancy.ts";
+import {
+  currentOrganizationId,
+  dataSource,
+  locations,
+  organizations,
+  staffOnlyInDemoPolicy,
+} from "./tenancy.ts";
 
-/** Rows visible and writable only inside their own Organization's tenant context. */
-export const tenantPolicy = (name: string, organizationId: AnyPgColumn) =>
-  pgPolicy(name, {
+/**
+ * Rows visible and writable only inside their own Organization's tenant context, and in a
+ * Platform Staff context only if that Organization is a Demo Organization.
+ */
+export const tenantPolicies = (table: string, organizationId: AnyPgColumn) => [
+  pgPolicy(`${table}_tenant`, {
     for: "all",
     using: sql`${organizationId} = ${currentOrganizationId}`,
     withCheck: sql`${organizationId} = ${currentOrganizationId}`,
-  });
+  }),
+  staffOnlyInDemoPolicy(table, organizationId),
+];
 
 export const house = pgEnum("house", ["front", "back"]);
 
@@ -43,7 +54,7 @@ export const positions = pgTable(
   (t) => [
     unique("positions_organization_name_key").on(t.organizationId, t.name),
     unique("positions_source_key").on(t.organizationId, t.source, t.externalId),
-    tenantPolicy("positions_tenant", t.organizationId),
+    ...tenantPolicies("positions", t.organizationId),
   ],
 );
 
@@ -64,7 +75,7 @@ export const employees = pgTable(
   },
   (t) => [
     unique("employees_source_key").on(t.organizationId, t.source, t.externalId),
-    tenantPolicy("employees_tenant", t.organizationId),
+    ...tenantPolicies("employees", t.organizationId),
   ],
 );
 
@@ -85,6 +96,6 @@ export const employeeLocations = pgTable(
   (t) => [
     primaryKey({ columns: [t.employeeId, t.locationId] }),
     index("employee_locations_location_id_idx").on(t.locationId),
-    tenantPolicy("employee_locations_tenant", t.organizationId),
+    ...tenantPolicies("employee_locations", t.organizationId),
   ],
 );

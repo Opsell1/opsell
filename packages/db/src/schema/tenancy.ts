@@ -3,6 +3,7 @@
 // role, so they apply to every role except the table owner, which runs migrations and seeds.
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
@@ -23,6 +24,20 @@ export const currentOrganizationId = sql`nullif(current_setting('app.organizatio
 export const currentUserId = sql`nullif(current_setting('app.user_id', true), '')::uuid`;
 /** The signed-in Platform Staff member of the current transaction, or null (ADR 0006). */
 export const currentStaffId = sql`nullif(current_setting('app.staff_id', true), '')::uuid`;
+
+/**
+ * In a Platform Staff context, only Demo Organizations' rows, whatever Organization id the code
+ * passes: staff have no standing access to a regular Organization's data (ADR 0006). Restrictive,
+ * so it narrows every other policy on the table. `is_demo_organization` is a SECURITY DEFINER
+ * function (migration 0002), so this check never recurses through the tables' own policies.
+ */
+export const staffOnlyInDemoPolicy = (table: string, organizationId: AnyPgColumn) =>
+  pgPolicy(`${table}_staff_only_in_demo`, {
+    as: "restrictive",
+    for: "all",
+    using: sql`${currentStaffId} is null or is_demo_organization(${organizationId})`,
+    withCheck: sql`${currentStaffId} is null or is_demo_organization(${organizationId})`,
+  });
 
 /** The systems Opsell reads operations data from. The mock source serves Demo Organizations. */
 export const dataSource = pgEnum("data_source", ["mock"]);
@@ -59,6 +74,12 @@ export const organizations = pgTable(
       using: sql`${t.id} = ${currentOrganizationId}`,
       withCheck: sql`${t.id} = ${currentOrganizationId}`,
     }),
+    pgPolicy("organizations_staff_only_in_demo", {
+      as: "restrictive",
+      for: "all",
+      using: sql`${currentStaffId} is null or ${t.isDemo}`,
+      withCheck: sql`${currentStaffId} is null or ${t.isDemo}`,
+    }),
   ],
 );
 
@@ -91,6 +112,7 @@ export const memberships = pgTable(
       using: sql`${t.organizationId} = ${currentOrganizationId}`,
       withCheck: sql`${t.organizationId} = ${currentOrganizationId}`,
     }),
+    staffOnlyInDemoPolicy("memberships", t.organizationId),
   ],
 );
 
@@ -118,5 +140,6 @@ export const locations = pgTable(
       using: sql`${t.organizationId} = ${currentOrganizationId}`,
       withCheck: sql`${t.organizationId} = ${currentOrganizationId}`,
     }),
+    staffOnlyInDemoPolicy("locations", t.organizationId),
   ],
 );
