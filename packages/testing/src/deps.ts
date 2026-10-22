@@ -1,5 +1,5 @@
-import type { Deps } from "@opsell/core";
-import { createPgBossJobs } from "@opsell/core/adapters";
+import { type Deps, jobDefinitions } from "@opsell/core";
+import { createPgBossJobs, createQueues } from "@opsell/core/adapters";
 import { createDatabase } from "@opsell/db";
 import { FakeClaude } from "./claude.ts";
 import { FakeClock } from "./clock.ts";
@@ -16,6 +16,7 @@ export async function createTestDeps(databaseUrl: string) {
   const claude = new FakeClaude();
   const db = createDatabase(databaseUrl, { max: 4 });
   const boss = await startTestBoss(databaseUrl);
+  await createQueues(boss, jobDefinitions);
   const deps: Deps = {
     db,
     clock,

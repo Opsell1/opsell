@@ -9,6 +9,7 @@ const env = z
     MAIL_FROM: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(32),
     WEB_ORIGIN: z.url(),
+    CONSOLE_ORIGIN: z.url(),
     API_PORT: z.coerce.number().int().default(4000),
     ANTHROPIC_API_KEY: z.string().optional(),
   })
@@ -24,6 +25,7 @@ const runtime = await startRuntime({
 
 const server = createApp(runtime.deps, {
   webOrigin: env.WEB_ORIGIN,
+  consoleOrigin: env.CONSOLE_ORIGIN,
   authSecret: env.BETTER_AUTH_SECRET,
 }).listen(env.API_PORT, () => console.info(`API listening on :${env.API_PORT}`));
 

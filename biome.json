@@ -16,7 +16,7 @@
       "!.claude",
       "!skills-lock.json",
       "!**/src/generated",
-      "!**/openapi.json",
+      "!**/*openapi.json",
       "!**/drizzle/meta",
       "!packages/ui/src/format.ts",
       "!packages/ui/src/status.ts",

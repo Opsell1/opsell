@@ -9,6 +9,8 @@ import { type Deps, getLocation, listLocations, type Role } from "@opsell/core";
 import { toNodeHandler } from "better-auth/node";
 import express, { type ErrorRequestHandler } from "express";
 import { createAuth } from "./auth.ts";
+import { createConsoleRouter } from "./console.ts";
+import { createStaffAuth } from "./staff-auth.ts";
 import { error, ok, send, tenantRoute } from "./tenant.ts";
 
 // The contract cannot import the database's role enum (web clients import the contract), so the
@@ -18,13 +20,16 @@ const rolesMatch: Same<ContractRole, Role> = true;
 void rolesMatch;
 
 export interface AppConfig {
-  /** The web app's public origin, the only one browsers call the API from. */
+  /** The web app's public origin, the only one Organization users' browsers call the API from. */
   webOrigin: string;
+  /** The Platform Staff console's public origin, where staff passkeys are bound. */
+  consoleOrigin: string;
   authSecret: string;
 }
 
 export function createApp(deps: Deps, config: AppConfig): express.Express {
   const auth = createAuth(deps, config);
+  const staffAuth = createStaffAuth(deps, config);
   const route = (handler: Parameters<typeof tenantRoute>[2]) => tenantRoute(deps, auth, handler);
 
   const app = express();
@@ -33,9 +38,11 @@ export function createApp(deps: Deps, config: AppConfig): express.Express {
   app.get("/healthz", (_req, res) => {
     res.json({ ok: true });
   });
-  // Better Auth reads the raw body, so it is mounted before the JSON parser.
+  // Better Auth reads the raw body, so both instances are mounted before the JSON parser.
   app.all("/api/auth/{*any}", toNodeHandler(auth));
+  app.all("/api/console/auth/{*any}", toNodeHandler(staffAuth));
   app.use(express.json());
+  app.use("/api/console", createConsoleRouter(deps, staffAuth));
 
   const api = express.Router();
   api.get(

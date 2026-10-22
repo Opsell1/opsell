@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "@opsell/ui/styles.css";
+
+@source "../app";
+@source "../lib";
+@source "../components";

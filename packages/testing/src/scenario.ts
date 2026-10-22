@@ -1,10 +1,23 @@
 import type { Clock, LocationRecord, Role } from "@opsell/core";
 import * as schema from "@opsell/db";
-import { locations, memberships, organizations, type Schema, users } from "@opsell/db";
+import {
+  locations,
+  memberships,
+  organizations,
+  platformStaff,
+  type Schema,
+  users,
+} from "@opsell/db";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 
 export interface UserFixture {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface StaffFixture {
   id: string;
   name: string;
   email: string;
@@ -29,6 +42,8 @@ export interface LocationInput {
 export interface OrganizationInput {
   name?: string;
   isDemo?: boolean;
+  /** A Demo Organization's generator seed; 1 unless given. */
+  seed?: number;
   /** How many Locations to create, or their details. */
   locations?: number | LocationInput[];
 }
@@ -57,6 +72,7 @@ export class Scenario {
       .values({
         name: input.name ?? `Organization ${tag}`,
         isDemo: input.isDemo ?? false,
+        demoSeed: input.isDemo ? (input.seed ?? 1) : null,
         createdAt: now,
       })
       .returning();
@@ -104,6 +120,24 @@ export class Scenario {
       .returning({ id: users.id, name: users.name, email: users.email });
     if (!user) throw new Error("User was not created");
     return user;
+  }
+
+  /** A Platform Staff member, with no passkey yet; outside every Organization. */
+  async staff(input: { name?: string; email?: string } = {}): Promise<StaffFixture> {
+    const tag = shortId();
+    const now = this.#clock.now();
+    const [staff] = await this.#db
+      .insert(platformStaff)
+      .values({
+        name: input.name ?? `Staff ${tag}`,
+        email: input.email ?? `staff-${tag}@opsell.example`,
+        emailVerified: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: platformStaff.id, name: platformStaff.name, email: platformStaff.email });
+    if (!staff) throw new Error("Platform Staff member was not created");
+    return staff;
   }
 
   async membership(organizationId: string, userId: string, role: Role): Promise<void> {

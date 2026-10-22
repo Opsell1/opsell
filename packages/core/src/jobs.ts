@@ -34,6 +34,3 @@ export function runJob<T>(
     definition.handle(tx, data, { jobId: job.id, deps }),
   );
 }
-
-/** The jobs the worker runs. Later tickets register theirs here. */
-export const jobDefinitions: JobDefinition[] = [];

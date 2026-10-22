@@ -11,9 +11,12 @@
     "build": "tsdown",
     "start": "node dist/main.mjs",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "staff": "node --env-file-if-exists=../../.env src/staff-cli.ts"
   },
   "dependencies": {
+    "@better-auth/core": "1.7.7",
+    "@better-auth/passkey": "1.7.7",
     "@opsell/contract": "workspace:*",
     "@opsell/core": "workspace:*",
     "@opsell/db": "workspace:*",

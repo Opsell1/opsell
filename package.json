@@ -14,10 +14,11 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "test": "turbo run test",
-    "test:e2e": "pnpm --filter @opsell/web test:e2e",
+    "test:e2e": "pnpm --filter @opsell/web test:e2e && pnpm --filter @opsell/console test:e2e",
     "db:bootstrap": "pnpm --filter @opsell/db bootstrap",
     "db:migrate": "pnpm --filter @opsell/db migrate",
-    "db:seed": "pnpm --filter @opsell/db seed"
+    "db:seed": "pnpm --filter @opsell/db seed",
+    "staff:invite": "pnpm --filter @opsell/api staff invite"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

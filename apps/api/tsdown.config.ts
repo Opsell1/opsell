@@ -2,7 +2,7 @@ import { defineConfig } from "tsdown";
 
 // One self-contained bundle, so the Docker image needs only Node and dist/.
 export default defineConfig({
-  entry: ["src/main.ts", "src/migrate.ts"],
+  entry: ["src/main.ts", "src/migrate.ts", "src/staff-cli.ts"],
   platform: "node",
   target: "node24",
   format: "esm",

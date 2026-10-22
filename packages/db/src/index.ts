@@ -1,6 +1,8 @@
 export {
   createDatabase,
   type Database,
+  type PlatformTenantTx,
+  type PlatformTx,
   type Schema,
   type TenantTx,
   type UserTx,

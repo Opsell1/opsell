@@ -6,6 +6,7 @@ export type Schema = typeof schema;
 
 declare const tenantBrand: unique symbol;
 declare const userBrand: unique symbol;
+declare const platformBrand: unique symbol;
 
 /**
  * A transaction whose tenant context is set (ADR 0011). Domain functions take it as their first
@@ -23,6 +24,18 @@ export type UserTx = NodePgDatabase<Schema> & {
   readonly [userBrand]: true;
 };
 
+/**
+ * A transaction acting as a signed-in Platform Staff member (ADR 0006): it reads the platform
+ * audit log and Demo Organizations, and appends to the log only as that staff member.
+ */
+export type PlatformTx = NodePgDatabase<Schema> & {
+  readonly $client: pg.PoolClient;
+  readonly [platformBrand]: true;
+};
+
+/** A Platform Staff console action inside one Organization's tenant context. */
+export type PlatformTenantTx = TenantTx & PlatformTx;
+
 export interface Database {
   /**
    * Runs `fn` in a transaction with the tenant context set transaction-locally, so it can never
@@ -35,6 +48,18 @@ export interface Database {
   ): Promise<T>;
   /** Runs `fn` in a transaction where only the User is known. */
   withUser<T>(userId: string, fn: (tx: UserTx) => Promise<T>): Promise<T>;
+  /** Runs `fn` as a Platform Staff member, outside every Organization. */
+  withPlatform<T>(staffId: string, fn: (tx: PlatformTx) => Promise<T>): Promise<T>;
+  /**
+   * Runs `fn` as a Platform Staff member inside `organizationId`'s tenant context. Row-Level
+   * Security shows and accepts rows only if that Organization is a Demo Organization: Platform
+   * Staff have no standing access to a regular Organization's data (ADR 0006).
+   */
+  withPlatformTenant<T>(
+    staffId: string,
+    organizationId: string,
+    fn: (tx: PlatformTenantTx) => Promise<T>,
+  ): Promise<T>;
   /**
    * Queries outside any tenant context, for the global identity tables (ADR 0010). Row-Level
    * Security returns no tenant rows here.
@@ -79,6 +104,9 @@ export function createDatabase(connectionString: string, options: { max?: number
     withTenant: (organizationId, userId, fn) =>
       inTransaction({ "app.organization_id": organizationId, "app.user_id": userId }, fn),
     withUser: (userId, fn) => inTransaction({ "app.user_id": userId }, fn),
+    withPlatform: (staffId, fn) => inTransaction({ "app.staff_id": staffId }, fn),
+    withPlatformTenant: (staffId, organizationId, fn) =>
+      inTransaction({ "app.staff_id": staffId, "app.organization_id": organizationId }, fn),
     global: drizzle({ client: pool, schema }),
     pool,
     close: () => pool.end(),
