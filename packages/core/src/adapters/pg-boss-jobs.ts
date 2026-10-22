@@ -1,7 +1,15 @@
 import type { TenantTx } from "@opsell/db";
 import type { PgBoss } from "pg-boss";
-import type { JobEnvelope } from "../jobs.ts";
+import type { JobDefinition, JobEnvelope } from "../jobs.ts";
 import type { Clock, Jobs } from "../ports.ts";
+
+/**
+ * Creates the definitions' queues; idempotent, and needs no DDL for pg-boss's default queues.
+ * Both the API and the worker run it at start, since either may send before the other is up.
+ */
+export async function createQueues(boss: PgBoss, definitions: JobDefinition[]): Promise<void> {
+  for (const { queue } of definitions) await boss.createQueue(queue);
+}
 
 /** pg-boss behind the Jobs port, sending on the caller's transaction connection. */
 export function createPgBossJobs(boss: PgBoss, clock: Clock): Jobs {

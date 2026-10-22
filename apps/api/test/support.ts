@@ -1,10 +1,21 @@
 import type { AddressInfo } from "node:net";
-import { createApiClient } from "@opsell/contract";
-import { createTestDeps, Scenario, signIn, testDatabase, type UserFixture } from "@opsell/testing";
+import { createApiClient, createConsoleClient } from "@opsell/contract";
+import { issueStaffEnrollment } from "@opsell/core";
+import {
+  createTestDeps,
+  enrollPasskey,
+  Scenario,
+  type StaffFixture,
+  signIn,
+  testDatabase,
+  type UserFixture,
+  VirtualAuthenticator,
+} from "@opsell/testing";
 import { afterAll } from "vitest";
 import { createApp } from "../src/index.ts";
 
 const WEB_ORIGIN = "http://web.test";
+const CONSOLE_ORIGIN = "http://console.test";
 
 /**
  * Starts the real Express app in-process on a free port, wired to this worker's test database
@@ -15,6 +26,7 @@ export async function startTestApp() {
   const testDeps = await createTestDeps(database.apiUrl);
   const app = createApp(testDeps.deps, {
     webOrigin: WEB_ORIGIN,
+    consoleOrigin: CONSOLE_ORIGIN,
     authSecret: "test-secret-test-secret-test-secret-0123",
   });
   const server = app.listen(0);
@@ -44,5 +56,45 @@ export async function startTestApp() {
     return createApiClient({ baseUrl: `${apiOrigin}/api`, headers: { cookie } });
   };
 
-  return { ...testDeps, apiOrigin, webOrigin: WEB_ORIGIN, scenario, anonymous, signedInAs };
+  /** A typed console client, carrying `cookie` if given, as the console's browser would. */
+  const consoleClient = (cookie?: string) =>
+    createConsoleClient({
+      baseUrl: `${apiOrigin}/api/console`,
+      headers: { origin: CONSOLE_ORIGIN, ...(cookie ? { cookie } : {}) },
+    });
+
+  /** Issues an enrollment link for `staff`, as the invite command does, and returns its token. */
+  const enrollmentToken = async (staff: StaffFixture) =>
+    (await issueStaffEnrollment(testDeps.deps.db.global, staff, testDeps.clock.now())).token;
+
+  /**
+   * A Platform Staff member who has enrolled a passkey on their own authenticator, signed in to
+   * the console.
+   */
+  const staffSignedIn = async (staff?: StaffFixture) => {
+    const member = staff ?? (await scenario.staff());
+    const authenticator = new VirtualAuthenticator();
+    const { response, cookie } = await enrollPasskey({
+      apiOrigin,
+      consoleOrigin: CONSOLE_ORIGIN,
+      authenticator,
+      token: await enrollmentToken(member),
+    });
+    if (!response.ok)
+      throw new Error(`Enrollment failed: ${response.status} ${await response.text()}`);
+    return { staff: member, authenticator, cookie, api: consoleClient(cookie) };
+  };
+
+  return {
+    ...testDeps,
+    apiOrigin,
+    webOrigin: WEB_ORIGIN,
+    consoleOrigin: CONSOLE_ORIGIN,
+    scenario,
+    anonymous,
+    signedInAs,
+    consoleClient,
+    enrollmentToken,
+    staffSignedIn,
+  };
 }

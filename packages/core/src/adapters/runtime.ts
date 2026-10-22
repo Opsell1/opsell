@@ -1,7 +1,8 @@
 import { createDatabase, JOBS_SCHEMA } from "@opsell/db";
 import { PgBoss } from "pg-boss";
+import { jobDefinitions } from "../job-definitions.ts";
 import type { Deps } from "../ports.ts";
-import { createPgBossJobs } from "./pg-boss-jobs.ts";
+import { createPgBossJobs, createQueues } from "./pg-boss-jobs.ts";
 import { createSmtpMailer } from "./smtp-mailer.ts";
 import { createClaudeClient, systemClock, unconfiguredSms } from "./system.ts";
 
@@ -27,6 +28,7 @@ export async function startRuntime(config: RuntimeConfig) {
   });
   boss.on("error", (error) => console.error("pg-boss", error));
   await boss.start();
+  await createQueues(boss, jobDefinitions);
 
   const clock = systemClock;
   const deps: Deps = {

@@ -4,7 +4,9 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
+  integer,
   pgEnum,
   pgPolicy,
   pgTable,
@@ -19,6 +21,11 @@ import { users } from "./auth.ts";
 export const currentOrganizationId = sql`nullif(current_setting('app.organization_id', true), '')::uuid`;
 /** The signed-in User of the current transaction, or null for system work. */
 export const currentUserId = sql`nullif(current_setting('app.user_id', true), '')::uuid`;
+/** The signed-in Platform Staff member of the current transaction, or null (ADR 0006). */
+export const currentStaffId = sql`nullif(current_setting('app.staff_id', true), '')::uuid`;
+
+/** The systems Opsell reads operations data from. The mock source serves Demo Organizations. */
+export const dataSource = pgEnum("data_source", ["mock"]);
 
 export const organizations = pgTable(
   "organizations",
@@ -27,12 +34,25 @@ export const organizations = pgTable(
     name: text("name").notNull(),
     // Set at creation and never changed (ADR 0005); a trigger rejects any update to it.
     isDemo: boolean("is_demo").notNull(),
+    /** The generator seed a Demo Organization was created from; only Demo Organizations have one. */
+    demoSeed: integer("demo_seed"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (t) => [
+    check("organizations_demo_seed_only_for_demo", sql`${t.isDemo} = (${t.demoSeed} is not null)`),
     pgPolicy("organizations_read", {
       for: "select",
       using: sql`${t.id} = ${currentOrganizationId} or ${t.id} in (select organization_id from memberships where user_id = ${currentUserId})`,
+    }),
+    // Platform Staff see Demo Organizations, which hold only fictional data, and no others.
+    pgPolicy("organizations_platform_read", {
+      for: "select",
+      using: sql`${t.isDemo} and ${currentStaffId} is not null`,
+    }),
+    // An Organization is created inside its own tenant context, so nothing else can be written.
+    pgPolicy("organizations_create", {
+      for: "insert",
+      withCheck: sql`${t.id} = ${currentOrganizationId}`,
     }),
     pgPolicy("organizations_update", {
       for: "update",
@@ -85,10 +105,14 @@ export const locations = pgTable(
     city: text("city").notNull(),
     state: text("state").notNull(),
     timeZone: text("time_zone").notNull(),
+    /** The source store the Location was imported from, if any. */
+    source: dataSource("source"),
+    externalId: text("external_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (t) => [
     unique("locations_organization_name_key").on(t.organizationId, t.name),
+    unique("locations_source_key").on(t.organizationId, t.source, t.externalId),
     pgPolicy("locations_tenant", {
       for: "all",
       using: sql`${t.organizationId} = ${currentOrganizationId}`,

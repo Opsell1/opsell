@@ -1,4 +1,5 @@
 import { type Deps, type JobDefinition, type JobEnvelope, runJob } from "@opsell/core";
+import { createQueues } from "@opsell/core/adapters";
 import type { PgBoss } from "pg-boss";
 
 export interface WorkerOptions {
@@ -13,10 +14,7 @@ export interface WorkerOptions {
 export function createWorker(deps: Deps, { boss, definitions }: WorkerOptions) {
   const workers: { queue: string; id: string }[] = [];
 
-  /** Creates the queues; idempotent, and needs no DDL for pg-boss's default queues. */
-  async function ensureQueues(): Promise<void> {
-    for (const { queue } of definitions) await boss.createQueue(queue);
-  }
+  const ensureQueues = () => createQueues(boss, definitions);
 
   return {
     ensureQueues,

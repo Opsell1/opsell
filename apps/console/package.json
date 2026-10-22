@@ -1,0 +1,35 @@
+{
+  "name": "@opsell/console",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build && cp -R .next/static .next/standalone/apps/console/.next/static",
+    "start": "node .next/standalone/apps/console/server.js",
+    "typecheck": "next typegen && tsc -p tsconfig.json",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@better-auth/passkey": "1.7.7",
+    "@opsell/contract": "workspace:*",
+    "@opsell/ui": "workspace:*",
+    "better-auth": "1.7.7",
+    "geist": "1.7.2",
+    "lucide-react": "1.52.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@opsell/config": "workspace:*",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "24.19.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "postcss": "8.5.29",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}

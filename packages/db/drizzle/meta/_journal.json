@@ -15,6 +15,20 @@
       "when": 1792536064153,
       "tag": "0001_grants_and_demo_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792635088431,
+      "tag": "0002_platform_console",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792635089118,
+      "tag": "0003_demo_guards_and_append_only",
+      "breakpoints": true
     }
   ]
 }
