@@ -22,18 +22,21 @@ flowchart LR
   Worker -- "SMTP" --> Mail
 ```
 
-Three processes run on your machine, and two run in Docker.
+Five processes run on your machine.
+The two services run natively as Homebrew background services; Docker is only a fallback.
 
 | What | Where it runs | Port | Started by |
 | --- | --- | --- | --- |
-| Postgres 18 | Docker container `opsell-postgres-1` | 5432 | `docker compose` (inside `pnpm dev`) |
-| Mailpit (catches all email) | Docker container `opsell-mailpit-1` | 1025 SMTP, 8025 web UI | `docker compose` (inside `pnpm dev`) |
+| Postgres 18 | Homebrew service `postgresql@18` (data in `$(brew --prefix)/var/postgresql@18`) | 5432 | `brew services`, at login |
+| Mailpit (catches all email) | Homebrew service `mailpit` | 1025 SMTP, 8025 web UI | `brew services`, at login |
 | API (`apps/api`) | Host, `node --watch src/main.ts` | 4000 | `turbo run dev` (inside `pnpm dev`) |
 | Worker (`apps/worker`) | Host, `node --watch src/main.ts` | none | `turbo run dev` (inside `pnpm dev`) |
 | Web (`apps/web`) | Host, `next dev` | 3000 | `turbo run dev` (inside `pnpm dev`) |
 
-Only the databases and the mail catcher are containerized locally.
-The apps run directly on the host so file watching and reloads are fast.
+Nothing runs in a virtual machine, so the whole stack needs a few hundred megabytes of memory.
+Docker Desktop alone reserves several gigabytes, which is why it is not the default.
+If you prefer Docker anyway, leave the Homebrew services stopped and `pnpm dev` starts Postgres and Mailpit from [`docker-compose.yml`](../docker-compose.yml) on the same ports.
+CI runs the same Postgres 18 and Mailpit as service containers.
 Node runs TypeScript natively (Node 24 type stripping), so in development there is no build step for the API, worker or packages.
 
 ## 2. How to run it
@@ -42,7 +45,21 @@ Node runs TypeScript natively (Node 24 type stripping), so in development there 
 
 - Node 24 (`.nvmrc` says `24`).
 - pnpm 11 (`corepack enable` picks up `packageManager: pnpm@11.9.0`).
-- Docker Desktop running.
+- Homebrew.
+
+### One-time setup
+
+```sh
+brew install postgresql@18 mailpit
+brew services start postgresql@18
+brew services start mailpit
+$(brew --prefix postgresql@18)/bin/createuser -s postgres
+```
+
+Homebrew's Postgres makes your macOS user the superuser.
+`createuser -s postgres` adds the `postgres` superuser that `DATABASE_ADMIN_URL` uses, so `.env` is the same here, in Docker and in CI.
+Homebrew's Postgres trusts local connections, so the password in the URL is not checked.
+Both services now start at login; `brew services stop <name>` stops one.
 
 ### First run
 
@@ -60,7 +77,7 @@ Then:
 
 To stop, press `Ctrl+C`.
 That stops the API, worker and web app.
-Postgres and Mailpit keep running in Docker; stop them with `docker compose down` (add `-v` to also delete the database volume).
+Postgres and Mailpit keep running as background services, so the next `pnpm dev` starts faster.
 
 ### What `pnpm dev` does, step by step
 
@@ -70,7 +87,7 @@ Every step is idempotent, so it is safe to re-run at any time.
 | Step | Command | What happens |
 | --- | --- | --- |
 | 1 | copy `.env.example` to `.env` | Only if `.env` is missing. Every process reads the root `.env`. |
-| 2 | `docker compose up --detach --wait` | Starts Postgres and Mailpit from [`docker-compose.yml`](../docker-compose.yml) and waits until they are healthy. |
+| 2 | check ports, then `docker compose up --detach --wait <missing>` | Checks whether Postgres (`DATABASE_ADMIN_URL`) and Mailpit (`SMTP_URL`) accept connections. With the Homebrew services running it prints `Postgres and Mailpit are already running; not starting Docker.` Otherwise it starts only the missing ones in Docker, or prints the Homebrew commands if Docker is not available. |
 | 3 | `pnpm db:bootstrap` | As the Postgres superuser, creates the roles `opsell_owner`, `opsell_app`, `opsell_api`, `opsell_worker` and the `opsell` database. Prints `Database roles and database are ready.` |
 | 4 | `pnpm db:migrate` | As `opsell_owner`, applies the Drizzle migrations in `packages/db/drizzle/`, installs pg-boss in the `pgboss` schema, and grants the app roles access. Prints `Migrations applied.` |
 | 5 | `pnpm db:seed` | As `opsell_owner`, inserts the two dev Organizations, their Org Admins and Locations. Prints `Seed applied.` |
@@ -295,7 +312,7 @@ If Dana asks for a Juniper Location by id, RLS hides the row, `getLocation` retu
 ```sh
 pnpm typecheck   # tsc in every package (runs contract generate first)
 pnpm lint        # Biome
-pnpm test        # Vitest; needs Postgres running (docker compose up -d)
+pnpm test        # Vitest; needs Postgres running
 pnpm build && pnpm test:e2e   # Playwright against production builds; needs a migrated, seeded database and Mailpit
 ```
 
@@ -365,9 +382,11 @@ The pattern for a new feature, following the existing Locations slice:
 
 ## 10. Troubleshooting
 
-- **Port already in use (5432, 3000, 4000):** another Postgres or dev server is running. Stop it, or `docker compose down` in another checkout.
+- **Port already in use (3000, 4000):** another dev server is running, perhaps in another checkout. Stop it first.
+- **Both Homebrew and Docker Postgres:** only one can hold port 5432. `pnpm dev` uses whichever is running; stop the other (`docker compose stop` or `brew services stop postgresql@18`).
+- **`pnpm dev` says it could not start postgres or mailpit:** a Homebrew service is stopped. Run `brew services list` and start it.
 - **No sign-in email:** only seeded Users can sign in (sign-up is disabled). Check http://localhost:8025.
 - **Signed in but sent to `/no-access`:** the User has no membership in any Organization.
 - **`/locations` shows an error page instead of data:** the API is down or `API_URL` is wrong. Check `curl localhost:4000/healthz`.
 - **CI fails on contract drift:** run `pnpm generate` and commit `packages/contract/openapi.json` and `src/generated/openapi.ts`.
-- **Start the database from scratch:** `docker compose down -v`, then `pnpm dev`.
+- **Start the database from scratch:** `$(brew --prefix postgresql@18)/bin/dropdb -h localhost -U postgres opsell`, then `pnpm dev` (with Docker: `docker compose down -v`).
