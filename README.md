@@ -2,6 +2,7 @@
 
 Operations software for multi-location restaurant groups.
 Domain language lives in [GLOSSARY.md](GLOSSARY.md) and decisions in [docs/adr](docs/adr).
+For a stage-by-stage tour of how the pieces fit together, read [docs/walking-skeleton.md](docs/walking-skeleton.md).
 
 ## Run it locally
 
